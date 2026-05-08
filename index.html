@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日報ツール</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a56db, #3b82f6);
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.05em; }
+
+    nav {
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 24px;
+      display: flex;
+      gap: 4px;
+    }
+    nav button {
+      padding: 14px 20px;
+      border: none; background: none; cursor: pointer;
+      font-size: 0.9rem; color: #6b7280;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s; font-weight: 500;
+    }
+    nav button.active { color: #1a56db; border-bottom-color: #1a56db; }
+    nav button:hover:not(.active) { color: #374151; background: #f9fafb; }
+
+    main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* 一覧 */
+    .list-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 14px;
+    }
+    .list-header h2 { font-size: 1.1rem; color: #374151; }
+
+    .search-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: white; border: 1.5px solid #d1d5db; border-radius: 10px;
+      padding: 9px 14px; margin-bottom: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-bar:focus-within { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+    .search-bar svg { flex-shrink: 0; color: #9ca3af; }
+    .search-bar input {
+      flex: 1; border: none; outline: none; font-size: 0.9rem;
+      font-family: inherit; color: #374151; background: transparent;
+    }
+    .search-bar input::placeholder { color: #d1d5db; }
+    .search-clear {
+      background: none; border: none; cursor: pointer; padding: 0;
+      color: #9ca3af; font-size: 1rem; line-height: 1; display: none;
+    }
+    .search-clear:hover { color: #374151; }
+    .search-clear.visible { display: block; }
+
+    .btn {
+      padding: 10px 20px; border-radius: 8px; border: none;
+      cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-primary { background: #1a56db; color: white; }
+    .btn-primary:hover { background: #1e40af; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,86,219,0.3); }
+    .btn-secondary { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+    .report-card {
+      background: white; border-radius: 12px; padding: 20px;
+      margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb; transition: all 0.2s; cursor: pointer;
+    }
+    .report-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-2px); }
+    .report-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .report-date { font-size: 0.8rem; color: #9ca3af; white-space: nowrap; }
+    .report-title { font-weight: 700; font-size: 1rem; color: #111827; margin-bottom: 4px; }
+    .report-meta { display: flex; gap: 16px; font-size: 0.85rem; color: #6b7280; flex-wrap: wrap; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* フォーム */
+    .form-card {
+      background: white; border-radius: 12px; padding: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: 1px solid #e5e7eb;
+    }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label { font-size: 0.85rem; font-weight: 600; color: #374151; display: flex; align-items: center; }
+    label .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; background: #1a56db; color: white;
+      border-radius: 50%; font-size: 0.7rem; margin-right: 6px; flex-shrink: 0;
+    }
+    label .hint { font-size: 0.75rem; color: #9ca3af; font-weight: 400; margin-left: 4px; }
+
+    input[type="date"], textarea {
+      padding: 10px 14px; border: 1.5px solid #d1d5db; border-radius: 8px;
+      font-size: 0.9rem; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s; width: 100%; background: white;
+    }
+    input:focus, textarea:focus {
+      outline: none; border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1);
+    }
+    textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+
+    /* チップ選択 */
+    .chip-field {
+      border: 1.5px solid #d1d5db; border-radius: 10px;
+      padding: 10px 12px; background: white; min-height: 54px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .chip-field:focus-within { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+
+    .chip-list { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }
+    .chip-list:empty { margin-bottom: 0; }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 999px; font-size: 0.85rem;
+      cursor: pointer; border: 1.5px solid #d1d5db;
+      background: #f9fafb; color: #374151;
+      transition: all 0.15s; user-select: none; font-family: inherit;
+    }
+    .chip:hover { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+    .chip.selected { background: #1a56db; color: white; border-color: #1a56db; }
+    .chip.selected:hover { background: #1e40af; border-color: #1e40af; }
+
+    .chip-del {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      font-size: 0.7rem; cursor: pointer; opacity: 0.6;
+      background: rgba(0,0,0,0.12); border: none; color: inherit;
+      padding: 0; flex-shrink: 0; font-family: inherit;
+    }
+    .chip-del:hover { opacity: 1; background: rgba(0,0,0,0.25); }
+    .chip.selected .chip-del { background: rgba(255,255,255,0.25); color: white; }
+    .chip.selected .chip-del:hover { background: rgba(255,255,255,0.4); }
+
+    .chip-add-row { display: flex; gap: 6px; align-items: center; }
+    .chip-input {
+      flex: 1; border: none; outline: none; font-size: 0.85rem;
+      font-family: inherit; color: #374151; background: transparent;
+      padding: 2px 4px; min-width: 80px;
+    }
+    .chip-input::placeholder { color: #d1d5db; }
+    .chip-add-btn {
+      padding: 3px 10px; background: #e0e7ff; color: #4338ca;
+      border: none; border-radius: 6px; cursor: pointer;
+      font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+      transition: background 0.15s; font-family: inherit;
+    }
+    .chip-add-btn:hover { background: #c7d2fe; }
+
+    .form-actions {
+      display: flex; justify-content: flex-end; gap: 10px;
+      margin-top: 28px; padding-top: 20px; border-top: 1px solid #f3f4f6;
+    }
+
+    /* 詳細 */
+    .detail-card {
+      background: white; border-radius: 12px; padding: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: 1px solid #e5e7eb;
+    }
+    .detail-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #f3f4f6;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .detail-header h2 { font-size: 1.1rem; color: #111827; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .detail-item { display: flex; flex-direction: column; gap: 8px; }
+    .detail-item.full { grid-column: 1 / -1; }
+    .detail-label {
+      font-size: 0.78rem; font-weight: 700; color: #9ca3af;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .detail-label .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; background: #e0e7ff; color: #4338ca;
+      border-radius: 50%; font-size: 0.65rem;
+    }
+    .detail-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; align-items: center; }
+    .detail-chip {
+      display: inline-flex; align-items: center;
+      padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 500;
+    }
+    .detail-value {
+      font-size: 0.95rem; color: #111827; line-height: 1.7;
+      white-space: pre-wrap; background: #f9fafb;
+      padding: 10px 14px; border-radius: 8px;
+      min-height: 42px; border: 1px solid #f3f4f6;
+    }
+    .detail-value.empty { color: #d1d5db; font-style: italic; }
+
+    /* ローディング */
+    .loading {
+      text-align: center; padding: 40px; color: #9ca3af; font-size: 0.9rem;
+    }
+    .spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 3px solid #e5e7eb; border-top-color: #1a56db;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 設定未完了バナー */
+    .setup-banner {
+      background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px;
+      padding: 16px 20px; margin-bottom: 20px; font-size: 0.9rem; color: #92400e;
+      line-height: 1.7;
+    }
+    .setup-banner strong { display: block; margin-bottom: 4px; font-size: 1rem; }
+    .setup-banner code {
+      background: #fde68a; padding: 1px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 0.85rem;
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #111827; color: white; padding: 12px 20px;
+      border-radius: 8px; font-size: 0.9rem;
+      opacity: 0; transform: translateY(10px); transition: all 0.3s;
+      z-index: 1000; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 0; margin-bottom: 16px;
+      background: none; border: none; cursor: pointer;
+      color: #6b7280; font-size: 0.9rem; font-weight: 500;
+    }
+    .back-btn:hover { color: #1a56db; }
+
+    @media (max-width: 600px) {
+      .form-grid, .detail-grid { grid-template-columns: 1fr; }
+      .form-group.full, .detail-item.full { grid-column: 1; }
+      .list-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.5rem">📋</span>
+  <h1>日報ツール</h1>
+</header>
+
+<nav>
+  <button class="active" id="nav-list" onclick="showPage('list')">一覧</button>
+  <button id="nav-new" onclick="showPage('new')">新規作成</button>
+</nav>
+
+<main>
+
+  <!-- 一覧 -->
+  <div class="page active" id="page-list">
+    <div class="list-header">
+      <h2 id="report-count">日報一覧</h2>
+      <button class="btn btn-primary" onclick="showPage('new')">＋ 新規作成</button>
+    </div>
+    <div class="search-bar">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" id="search-input" placeholder="訪問先・担当者・訪問内容・成果などで検索..." oninput="onSearch()">
+      <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+    </div>
+    <div id="report-list"><div class="loading"><div class="spinner"></div><br>読み込み中...</div></div>
+  </div>
+
+  <!-- 新規作成 -->
+  <div class="page" id="page-new">
+    <button class="back-btn" onclick="showPage('list')">← 一覧に戻る</button>
+    <div class="form-card">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label><span class="num">①</span>日付</label>
+          <input type="date" id="f-date">
+        </div>
+
+        <div class="form-group">
+          <label><span class="num">②</span>訪問先<span class="hint">（1つ選択）</span></label>
+          <div class="chip-field">
+            <div class="chip-list" id="cl-company"></div>
+            <div class="chip-add-row">
+              <input class="chip-input" id="ci-company" placeholder="新規追加して選択..." maxlength="40">
+              <button class="chip-add-btn" onclick="addChip('company')">＋ 追加</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label><span class="num">③</span>担当者<span class="hint">（複数選択可）</span></label>
+          <div class="chip-field">
+            <div class="chip-list" id="cl-person"></div>
+            <div class="chip-add-row">
+              <input class="chip-input" id="ci-person" placeholder="新規追加..." maxlength="30">
+              <button class="chip-add-btn" onclick="addChip('person')">＋ 追加</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label><span class="num">④</span>訪問内容<span class="hint">（複数選択可）</span></label>
+          <div class="chip-field">
+            <div class="chip-list" id="cl-content"></div>
+            <div class="chip-add-row">
+              <input class="chip-input" id="ci-content" placeholder="新規追加..." maxlength="30">
+              <button class="chip-add-btn" onclick="addChip('content')">＋ 追加</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label><span class="num">⑤</span>成果</label>
+          <textarea id="f-result" placeholder="今回の訪問で得られた成果..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label><span class="num">⑥</span>課題</label>
+          <textarea id="f-issue" placeholder="発生した課題・懸念事項..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label><span class="num">⑦</span>次回アクション</label>
+          <textarea id="f-next" placeholder="次回の対応・フォローアップ内容..."></textarea>
+        </div>
+
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="showPage('list')">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveReport()">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 詳細 -->
+  <div class="page" id="page-detail">
+    <button class="back-btn" onclick="showPage('list')">← 一覧に戻る</button>
+    <div class="detail-card" id="detail-content"></div>
+  </div>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getDatabase, ref, push, remove, set, onValue, query, orderByChild }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+  // ============================================================
+  //  ★ ここに Firebase の設定を貼り付けてください ★
+  // ============================================================
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAPHE_3iJqZlG0BMXFKeSgJuAsdbO77aY8",
+    authDomain:        "pj-ma-d1119.firebaseapp.com",
+    databaseURL:       "https://pj-ma-d1119-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "pj-ma-d1119",
+    storageBucket:     "pj-ma-d1119.firebasestorage.app",
+    messagingSenderId: "786198563128",
+    appId:             "1:786198563128:web:8826aaf8e8729e8419d9cd",
+  };
+  // ============================================================
+
+  const IS_CONFIGURED = !firebaseConfig.apiKey.includes('YOUR_');
+  const DEFAULT_CONTENT = ['商談','ヒアリング','提案説明','見積提出','契約締結','フォローアップ','定期訪問','クレーム対応'];
+
+  let db = null;
+  let reportsRef = null;
+  let optionsRef = null;
+  let allReports = [];
+  let cachedOptions = { company: [], person: [], content: [...DEFAULT_CONTENT] };
+
+  if (IS_CONFIGURED) {
+    const app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    reportsRef = ref(db, 'reports');
+    optionsRef = ref(db, 'options');
+
+    // 選択肢をリアルタイム同期
+    onValue(optionsRef, snapshot => {
+      const val = snapshot.val();
+      if (val) {
+        // Firebaseは空配列を保存しないので || [] でフォールバック
+        cachedOptions = {
+          company: val.company || [],
+          person:  val.person  || [],
+          content: val.content || [...DEFAULT_CONTENT],
+        };
+      } else {
+        set(optionsRef, { content: [...DEFAULT_CONTENT] });
+      }
+      renderAllChips();
+    });
+
+    // 日報をリアルタイム同期
+    onValue(query(reportsRef, orderByChild('createdAt')), snapshot => {
+      allReports = [];
+      snapshot.forEach(child => {
+        allReports.push({ id: child.key, ...child.val() });
+      });
+      allReports.reverse();
+      renderList();
+    });
+  } else {
+    showSetupBanner();
+    renderList();
+  }
+
+  // ===================== 設定未完了バナー =====================
+
+  function showSetupBanner() {
+    const banner = document.createElement('div');
+    banner.className = 'setup-banner';
+    banner.innerHTML = `
+      <strong>⚙️ Firebase の設定が必要です</strong>
+      <code>index.html</code> 内の <code>firebaseConfig</code> に、
+      Firebaseプロジェクトの設定値を貼り付けてください。<br>
+      設定するまでは、このブラウザ上でのみデータが表示されます（localStorageを使用）。`;
+    document.getElementById('page-list').insertBefore(banner, document.getElementById('report-list'));
+    allReports = getLocalIndex();
+  }
+
+  // ===================== チップ選択肢（Firebase共有） =====================
+
+  function getOptions() { return cachedOptions; }
+
+  function saveOptions(o) {
+    cachedOptions = o;
+    if (IS_CONFIGURED) {
+      set(optionsRef, o);
+    } else {
+      localStorage.setItem('nippou_options', JSON.stringify(o));
+    }
+  }
+
+  // ===================== チップ状態 =====================
+
+  const SINGLE = { company: true, person: false, content: false };
+  let sel = { company: null, person: new Set(), content: new Set() };
+
+  window.renderChips = function(field) {
+    const opts = getOptions()[field];
+    const list = document.getElementById('cl-' + field);
+    list.innerHTML = '';
+    opts.forEach(opt => {
+      const isSelected = SINGLE[field] ? sel[field] === opt : sel[field].has(opt);
+      const chip = document.createElement('span');
+      chip.className = 'chip' + (isSelected ? ' selected' : '');
+      chip.appendChild(document.createTextNode(opt));
+      const del = document.createElement('button');
+      del.className = 'chip-del';
+      del.title = '削除';
+      del.textContent = '×';
+      del.onclick = e => { e.stopPropagation(); removeOption(field, opt); };
+      chip.appendChild(del);
+      chip.onclick = () => toggleChip(field, opt);
+      list.appendChild(chip);
+    });
+  };
+
+  function renderAllChips() { ['company','person','content'].forEach(renderChips); }
+
+  function toggleChip(field, opt) {
+    if (SINGLE[field]) { sel[field] = sel[field] === opt ? null : opt; }
+    else { sel[field].has(opt) ? sel[field].delete(opt) : sel[field].add(opt); }
+    renderChips(field);
+  }
+
+  window.addChip = function(field) {
+    const input = document.getElementById('ci-' + field);
+    const val = input.value.trim();
+    if (!val) { input.focus(); return; }
+    const opts = getOptions();
+    if (!opts[field].includes(val)) { opts[field].push(val); saveOptions(opts); }
+    if (SINGLE[field]) sel[field] = val;
+    else sel[field].add(val);
+    input.value = '';
+    renderChips(field);
+    input.focus();
+  };
+
+  function removeOption(field, opt) {
+    const opts = getOptions();
+    opts[field] = opts[field].filter(o => o !== opt);
+    saveOptions(opts);
+    if (SINGLE[field]) { if (sel[field] === opt) sel[field] = null; }
+    else sel[field].delete(opt);
+    renderChips(field);
+  }
+
+  // ===================== ページ制御 =====================
+
+  window.showPage = function(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('nav-list').classList.toggle('active', page === 'list');
+    document.getElementById('nav-new').classList.toggle('active', page === 'new');
+    if (page === 'list') renderList();
+    if (page === 'new') resetForm();
+  };
+
+  // ===================== 一覧・検索 =====================
+
+  window.onSearch = function() {
+    const q = document.getElementById('search-input').value;
+    document.getElementById('search-clear').classList.toggle('visible', q.length > 0);
+    renderList();
+  };
+
+  window.clearSearch = function() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-clear').classList.remove('visible');
+    renderList();
+  };
+
+  function matchesQuery(r, q) {
+    if (!q) return true;
+    const target = [
+      r.date ? formatDate(r.date) : '',
+      r.company || '',
+      ...(r.persons  || []),
+      ...(r.contents || []),
+      r.result || '', r.issue || '', r.next || '',
+    ].join(' ').toLowerCase();
+    return q.trim().toLowerCase().split(/\s+/).every(w => target.includes(w));
+  }
+
+  function highlight(text, q) {
+    if (!q || !text) return esc(text);
+    const words = q.trim().split(/\s+/).filter(Boolean);
+    let result = esc(text);
+    words.forEach(w => {
+      const re = new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
+      result = result.replace(re, m => `<mark style="background:#fef08a;border-radius:2px;padding:0 1px">${m}</mark>`);
+    });
+    return result;
+  }
+
+  function renderList() {
+    const q      = document.getElementById('search-input')?.value || '';
+    const list   = IS_CONFIGURED ? allReports : getLocalIndex().slice().reverse();
+    const filtered = list.filter(e => matchesQuery(e.data, q));
+    const container = document.getElementById('report-list');
+
+    document.getElementById('report-count').textContent =
+      q ? `日報一覧（${filtered.length} / ${list.length}件）` : `日報一覧（${list.length}件）`;
+
+    if (list.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">📄</div><p>日報がありません。「新規作成」から追加してください。</p></div>`;
+      return;
+    }
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>「${esc(q)}」に一致する日報が見つかりませんでした。</p></div>`;
+      return;
+    }
+    container.innerHTML = filtered.map(entry => {
+      const r        = entry.data;
+      const titleDate = r.date ? formatDate(r.date) : '日付なし';
+      const company  = r.company  || '—';
+      const persons  = (r.persons  || []).join('・') || '—';
+      const contents = (r.contents || []).join('・') || '—';
+      return `
+        <div class="report-card" onclick="openReport('${entry.id}')">
+          <div class="report-card-header">
+            <div>
+              <div class="report-title">${highlight(titleDate + ' — ' + company, q)}</div>
+              <div class="report-meta">
+                <span>👤 ${highlight(persons, q)}</span>
+                <span>📌 ${highlight(contents, q)}</span>
+              </div>
+            </div>
+            <span class="report-date">${formatCreatedAt(entry.createdAt)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ===================== 保存 =====================
+
+  window.saveReport = async function() {
+    if (!document.getElementById('f-date').value && !sel.company) {
+      showToast('日付または訪問先を入力してください'); return;
+    }
+    const data = {
+      date:     document.getElementById('f-date').value,
+      company:  sel.company || '',
+      persons:  [...sel.person],
+      contents: [...sel.content],
+      result:   document.getElementById('f-result').value.trim(),
+      issue:    document.getElementById('f-issue').value.trim(),
+      next:     document.getElementById('f-next').value.trim(),
+    };
+    const entry = { createdAt: new Date().toISOString(), data };
+
+    if (IS_CONFIGURED) {
+      const newRef = await push(reportsRef, entry);
+      showToast('保存しました');
+      openReport(newRef.key);
+    } else {
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+      const local = getLocalIndex();
+      local.push({ id, ...entry });
+      saveLocalIndex(local);
+      showToast('保存しました');
+      openReport(id);
+    }
+  };
+
+  // ===================== 詳細表示 =====================
+
+  window.openReport = function(id) {
+    const list  = IS_CONFIGURED ? allReports : getLocalIndex();
+    const entry = list.find(e => e.id === id);
+    if (!entry) { showToast('見つかりません'); return; }
+    const r = entry.data;
+
+    const chips = (arr, bg, color) =>
+      arr.length
+        ? arr.map(v => `<span class="detail-chip" style="background:${bg};color:${color}">${esc(v)}</span>`).join('')
+        : `<span style="color:#d1d5db;font-style:italic">未選択</span>`;
+
+    const titleText = (r.date ? formatDate(r.date) : '日付なし') + (r.company ? ' — ' + esc(r.company) : '');
+
+    document.getElementById('detail-content').innerHTML = `
+      <div class="detail-header">
+        <h2>📋 ${titleText}</h2>
+        <button class="btn btn-danger btn-sm" onclick="deleteReport('${id}')">削除</button>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-label"><span class="num">①</span>日付</div>
+          <div class="detail-value${!r.date?' empty':''}">${r.date ? formatDate(r.date) : '未入力'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label"><span class="num">②</span>訪問先</div>
+          <div class="detail-chips">${chips(r.company?[r.company]:[], '#dbeafe','#1e40af')}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label"><span class="num">③</span>担当者</div>
+          <div class="detail-chips">${chips(r.persons||[], '#ede9fe','#5b21b6')}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label"><span class="num">④</span>訪問内容</div>
+          <div class="detail-chips">${chips(r.contents||[], '#dcfce7','#166534')}</div>
+        </div>
+        <div class="detail-item full">
+          <div class="detail-label"><span class="num">⑤</span>成果</div>
+          <div class="detail-value${!r.result?' empty':''}">${r.result?esc(r.result):'未入力'}</div>
+        </div>
+        <div class="detail-item full">
+          <div class="detail-label"><span class="num">⑥</span>課題</div>
+          <div class="detail-value${!r.issue?' empty':''}">${r.issue?esc(r.issue):'未入力'}</div>
+        </div>
+        <div class="detail-item full">
+          <div class="detail-label"><span class="num">⑦</span>次回アクション</div>
+          <div class="detail-value${!r.next?' empty':''}">${r.next?esc(r.next):'未入力'}</div>
+        </div>
+      </div>`;
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-detail').classList.add('active');
+    document.getElementById('nav-list').classList.remove('active');
+    document.getElementById('nav-new').classList.remove('active');
+  };
+
+  // ===================== 削除 =====================
+
+  window.deleteReport = async function(id) {
+    if (!confirm('この日報を削除しますか？')) return;
+    if (IS_CONFIGURED) {
+      await remove(ref(db, 'reports/' + id));
+    } else {
+      saveLocalIndex(getLocalIndex().filter(e => e.id !== id));
+    }
+    showToast('削除しました');
+    showPage('list');
+  };
+
+  // ===================== ローカルフォールバック =====================
+
+  const LS_INDEX = 'nippou_index';
+  function getLocalIndex() {
+    try { return JSON.parse(localStorage.getItem(LS_INDEX)) || []; } catch { return []; }
+  }
+  function saveLocalIndex(v) { localStorage.setItem(LS_INDEX, JSON.stringify(v)); }
+
+  // ===================== リセット =====================
+
+  function resetForm() {
+    sel = { company: null, person: new Set(), content: new Set() };
+    ['f-result','f-issue','f-next'].forEach(id => { document.getElementById(id).value = ''; });
+    ['ci-company','ci-person','ci-content'].forEach(id => { document.getElementById(id).value = ''; });
+    setDefaultDate();
+    renderAllChips();
+  }
+
+  // ===================== ユーティリティ =====================
+
+  window.showToast = function(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  };
+  function esc(str) {
+    return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function formatDate(d) {
+    if (!d) return '';
+    const dt = new Date(d + 'T00:00:00');
+    return `${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日`;
+  }
+  function formatCreatedAt(iso) {
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+  function setDefaultDate() {
+    const t = new Date();
+    document.getElementById('f-date').value =
+      `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+
+  // ===================== 起動 =====================
+
+  setDefaultDate();
+  renderAllChips();
+  ['company','person','content'].forEach(field => {
+    document.getElementById('ci-' + field).addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addChip(field); }
+    });
+  });
+</script>
+</body>
+</html>
