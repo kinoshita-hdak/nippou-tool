@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クリニックM&A 買収金額検討ツール</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1e429f;
+      --accent: #0e9f6e;
+      --warn: #e3a008;
+      --danger: #c81e1e;
+      --bg: #f3f4f6;
+      --surface: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+    }
+
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow-lg);
+    }
+    header .icon { font-size: 32px; }
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+    header p { font-size: 12px; opacity: .8; margin-top: 2px; }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 24px 24px 60px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); border-radius: var(--radius); padding: 6px; box-shadow: var(--shadow); }
+    .tab-btn {
+      flex: 1; padding: 10px 8px; border: none; background: transparent;
+      border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+      color: var(--text-muted); transition: all .2s;
+    }
+    .tab-btn:hover { background: var(--bg); color: var(--text); }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header .badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 50%;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .card-header h2 { font-size: 15px; font-weight: 700; }
+    .card-header .subtitle { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .card-body { padding: 20px; }
+
+    .badge-blue { background: var(--primary); }
+    .badge-green { background: var(--accent); }
+    .badge-orange { background: var(--warn); }
+    .badge-purple { background: #7c3aed; }
+
+    /* Form elements */
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--text-muted); margin-bottom: 4px;
+    }
+    .field .hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .input-wrap { position: relative; }
+    .input-wrap .prefix, .input-wrap .suffix {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 13px; pointer-events: none;
+    }
+    .input-wrap .prefix { left: 10px; }
+    .input-wrap .suffix { right: 10px; }
+    input[type="number"], input[type="text"], select {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; color: var(--text);
+      background: var(--bg); transition: border-color .2s, box-shadow .2s;
+      appearance: none;
+    }
+    input[type="number"]:focus, select:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,86,219,.15);
+    }
+    .input-wrap.has-prefix input { padding-left: 28px; }
+    .input-wrap.has-suffix input { padding-right: 28px; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .section-title {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .8px;
+      margin: 18px 0 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px;
+    }
+
+    /* Result boxes */
+    .result-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 1px solid #93c5fd; border-radius: 10px; padding: 16px;
+      margin-top: 16px;
+    }
+    .result-box .label { font-size: 11px; font-weight: 600; color: var(--primary); margin-bottom: 4px; }
+    .result-box .amount { font-size: 26px; font-weight: 800; color: var(--primary-dark); }
+    .result-box .range { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .result-box.green {
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border-color: #6ee7b7;
+    }
+    .result-box.green .label { color: var(--accent); }
+    .result-box.green .amount { color: #065f46; }
+    .result-box.orange {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      border-color: #fcd34d;
+    }
+    .result-box.orange .label { color: #92400e; }
+    .result-box.orange .amount { color: #78350f; }
+
+    .breakdown { margin-top: 12px; }
+    .breakdown-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; border-bottom: 1px dashed var(--border); font-size: 12px;
+    }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-row .val { font-weight: 600; }
+    .breakdown-row .val.neg { color: var(--danger); }
+    .breakdown-row .val.pos { color: var(--accent); }
+    .breakdown-row.total {
+      font-weight: 700; border-top: 2px solid var(--border);
+      border-bottom: none; margin-top: 4px; padding-top: 8px; font-size: 13px;
+    }
+
+    /* Summary panel */
+    .summary-card { grid-column: 1 / -1; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 700px) { .summary-grid { grid-template-columns: 1fr; } }
+    .summary-item {
+      background: var(--bg); border-radius: 10px; padding: 16px;
+      text-align: center; border: 2px solid transparent; transition: border-color .2s;
+    }
+    .summary-item.highlight { border-color: var(--primary); }
+    .summary-item .method { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+    .summary-item .val { font-size: 22px; font-weight: 800; }
+    .summary-item .sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    .recommendation-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; padding: 16px; margin-top: 4px;
+    }
+    .recommendation-box h3 { font-size: 13px; font-weight: 700; color: #166534; margin-bottom: 8px; }
+    .recommendation-box p { font-size: 12px; color: #166534; line-height: 1.7; }
+
+    .chart-wrap { height: 180px; position: relative; margin: 16px 0; }
+    .bar-chart { display: flex; align-items: flex-end; gap: 16px; height: 100%; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bar-outer { width: 100%; flex: 1; display: flex; align-items: flex-end; }
+    .bar {
+      width: 100%; border-radius: 6px 6px 0 0; position: relative;
+      transition: height .5s ease; min-height: 4px;
+    }
+    .bar-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; }
+    .bar-val { font-size: 12px; font-weight: 700; text-align: center; }
+
+    /* DCF table */
+    .dcf-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+    .dcf-table th {
+      background: var(--primary); color: #fff; padding: 7px 8px;
+      text-align: right; font-weight: 600;
+    }
+    .dcf-table th:first-child { text-align: left; }
+    .dcf-table td {
+      padding: 6px 8px; border-bottom: 1px solid var(--border);
+      text-align: right;
+    }
+    .dcf-table td:first-child { text-align: left; font-weight: 600; color: var(--text-muted); }
+    .dcf-table tr:nth-child(even) { background: var(--bg); }
+    .dcf-table tr.total-row td {
+      background: #dbeafe; font-weight: 700;
+      color: var(--primary-dark); border-top: 2px solid var(--primary);
+    }
+
+    /* Range slider */
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 6px; background: var(--border);
+      border-radius: 3px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 18px; height: 18px; background: var(--primary);
+      border-radius: 50%; cursor: pointer; border: 2px solid #fff;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+    .slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      font-size: 10px; font-weight: 700;
+    }
+    .tag-blue { background: #dbeafe; color: var(--primary); }
+    .tag-green { background: #d1fae5; color: #065f46; }
+    .tag-orange { background: #fef3c7; color: #92400e; }
+
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .info-callout {
+      background: #eff6ff; border-left: 3px solid var(--primary);
+      border-radius: 0 8px 8px 0; padding: 10px 14px; font-size: 12px;
+      color: #1e40af; margin-bottom: 14px; line-height: 1.6;
+    }
+
+    .multiple-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; }
+    .multiple-table th { background: var(--bg); padding: 7px 10px; text-align: left; font-weight: 700; border-bottom: 2px solid var(--border); }
+    .multiple-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+    .multiple-table .highlight-row { background: #eff6ff; font-weight: 700; }
+
+    /* ── Upload Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 16px; width: 780px; max-width: 96vw;
+      max-height: 90vh; display: flex; flex-direction: column;
+      box-shadow: 0 25px 50px rgba(0,0,0,.25); overflow: hidden;
+    }
+    .modal-header {
+      padding: 18px 24px; background: linear-gradient(135deg,#1e3a8a,#1d4ed8);
+      color: #fff; display: flex; align-items: center; gap: 12px;
+      flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 700; flex: 1; }
+    .modal-close {
+      background: rgba(255,255,255,.2); border: none; color: #fff;
+      width: 32px; height: 32px; border-radius: 50%; font-size: 18px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,.35); }
+    .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0;
+      background: var(--bg);
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #93c5fd; border-radius: 12px;
+      padding: 32px 20px; text-align: center; cursor: pointer;
+      background: #eff6ff; transition: all .2s; margin-bottom: 20px;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--primary); background: #dbeafe;
+    }
+    .drop-zone .dz-icon { font-size: 40px; margin-bottom: 8px; }
+    .drop-zone .dz-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .drop-zone .dz-sub { font-size: 12px; color: var(--text-muted); }
+    #file-input { display: none; }
+
+    /* Unit selector */
+    .unit-row {
+      display: flex; align-items: center; gap: 12px;
+      background: #fef3c7; border-radius: 8px; padding: 10px 14px;
+      margin-bottom: 16px; font-size: 12px;
+    }
+    .unit-row label { font-weight: 700; color: #92400e; white-space: nowrap; }
+    .unit-row select {
+      padding: 4px 8px; border-radius: 6px; border: 1px solid #fcd34d;
+      background: #fff; font-size: 12px; color: var(--text);
+    }
+    .unit-row .unit-note { color: #92400e; flex: 1; }
+
+    /* Progress */
+    .progress-bar-wrap {
+      display: none; background: var(--border); border-radius: 4px;
+      height: 6px; margin-bottom: 12px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; background: var(--primary);
+      border-radius: 4px; transition: width .3s;
+    }
+    .progress-msg { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; text-align: center; }
+
+    /* Extraction table */
+    .extract-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .extract-table th {
+      background: var(--primary); color: #fff; padding: 8px 10px;
+      text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 1;
+    }
+    .extract-table th:last-child { text-align: center; width: 50px; }
+    .extract-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .extract-table tr:nth-child(even) { background: var(--bg); }
+    .extract-table tr.not-found td { opacity: .55; }
+    .found-badge {
+      display: inline-block; padding: 2px 7px; border-radius: 10px;
+      font-size: 10px; font-weight: 700;
+    }
+    .found-badge.ok  { background: #d1fae5; color: #065f46; }
+    .found-badge.ng  { background: #fee2e2; color: #991b1b; }
+    .extract-table .val-input {
+      width: 110px; padding: 4px 6px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 12px; text-align: right;
+      background: #fff;
+    }
+    .extract-table .val-input:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(26,86,219,.15);
+    }
+    .extract-table .targets { color: var(--text-muted); font-size: 10px; }
+
+    /* Paste tab */
+    .upload-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .upload-tab-btn {
+      padding: 8px 14px; border: 1px solid var(--border); background: var(--bg);
+      border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;
+      color: var(--text-muted); transition: all .2s;
+    }
+    .upload-tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .upload-panel { display: none; }
+    .upload-panel.active { display: block; }
+    #paste-area {
+      width: 100%; height: 140px; border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px; font-size: 12px; font-family: monospace;
+      resize: vertical; background: var(--bg);
+    }
+    #paste-area:focus { outline: none; border-color: var(--primary); }
+
+    /* Header upload btn */
+    .header-upload-btn {
+      margin-left: auto; padding: 8px 16px;
+      background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4);
+      color: #fff; border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 700; transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .header-upload-btn:hover { background: rgba(255,255,255,.35); }
+
+    .apply-count {
+      display: inline-block; background: #fbbf24; color: #78350f;
+      border-radius: 10px; padding: 1px 7px; font-size: 11px;
+      font-weight: 700; margin-left: 4px;
+    }
+    .cand-select {
+      display: block; margin-top: 4px; width: 100%; max-width: 200px;
+      padding: 3px 6px; border: 1px solid #93c5fd; border-radius: 5px;
+      font-size: 11px; background: #eff6ff; color: #1e40af; cursor: pointer;
+    }
+    .cand-select:focus { outline: none; border-color: var(--primary); }
+  </style>
+</head>
+<body>
+<header>
+  <div class="icon">🏥</div>
+  <div>
+    <h1>クリニック M&A 買収金額検討ツール</h1>
+    <p>マルチプル法・純資産法・DCF法による企業価値評価</p>
+  </div>
+  <button class="header-upload-btn" onclick="openUploadModal()">
+    📄 決算書を読み込む
+  </button>
+</header>
+
+<!-- ===== UPLOAD MODAL ===== -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span style="font-size:22px;">📄</span>
+      <h2>決算書読み込み — 自動抽出</h2>
+      <button class="modal-close" onclick="closeUploadModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- 入力方法タブ -->
+      <div class="upload-tabs">
+        <button class="upload-tab-btn active" onclick="switchUploadTab('pdf')">📁 PDFアップロード</button>
+        <button class="upload-tab-btn" onclick="switchUploadTab('paste')">📋 テキスト貼り付け</button>
+      </div>
+
+      <!-- PDFパネル -->
+      <div class="upload-panel active" id="panel-pdf">
+        <div class="drop-zone" id="drop-zone"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+          <div class="dz-icon">📂</div>
+          <div class="dz-title">PDFをドラッグ＆ドロップ、またはクリックして選択</div>
+          <div class="dz-sub">決算書（損益計算書・貸借対照表・CF計算書）のPDF</div>
+        </div>
+        <input type="file" id="file-input" accept=".pdf" onchange="onFileSelected(event)">
+      </div>
+
+      <!-- テキスト貼り付けパネル -->
+      <div class="upload-panel" id="panel-paste">
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+          会計ソフトからコピーした決算書のテキストを貼り付けてください（弥生・freee・MoneyForward等）
+        </p>
+        <textarea id="paste-area" placeholder="ここに決算書・企業概要書のテキストを貼り付け...
+
+【対応フォーマット例（単位：千円）】
+売上高         150,000
+営業利益        30,000
+減価償却費        5,000
+役員報酬        24,000
+現金及び預金     20,000
+医業未収金        8,000
+長期借入金       25,000
+未払金            4,000
+器械備品         15,000
+建物附属設備       8,000
+有形固定資産の取得   6,000
+
+※ PDF・会計ソフト（弥生/freee/MoneyForward）からコピーして貼り付け可"></textarea>
+        <button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="parsePastedText()">
+          テキストを解析する
+        </button>
+      </div>
+
+      <!-- 単位設定 -->
+      <div class="unit-row" id="unit-row" style="display:none;">
+        <label>決算書の単位：</label>
+        <select id="unit-select" onchange="reparse()">
+          <option value="0.1">千円（自動検出）</option>
+          <option value="1">万円</option>
+          <option value="0.1">千円</option>
+          <option value="100">百万円</option>
+          <option value="0.0001">円</option>
+        </select>
+        <span class="unit-note">※ 自動検出できない場合は手動で変更してください</span>
+      </div>
+
+      <!-- プログレスバー -->
+      <div class="progress-bar-wrap" id="progress-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-msg" id="progress-msg"></div>
+
+      <!-- 抽出結果テーブル -->
+      <div id="extract-result" style="display:none;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div style="font-size:13px; font-weight:700;">抽出結果 — 値を確認・修正してください</div>
+          <div style="font-size:11px; color:var(--text-muted);" id="found-summary"></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="extract-table">
+            <thead>
+              <tr>
+                <th>項目</th>
+                <th>検出テキスト</th>
+                <th>変換値（万円）</th>
+                <th>適用先フィールド</th>
+                <th style="text-align:center;">適用</th>
+              </tr>
+            </thead>
+            <tbody id="extract-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUploadModal()">キャンセル</button>
+      <button class="btn btn-primary" id="apply-btn" onclick="applyExtractedData()" disabled>
+        ✅ チェックした項目を全フィールドに適用
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Tab navigation -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('multiple')">📊 マルチプル法</button>
+    <button class="tab-btn" onclick="showTab('netasset')">🏦 純資産法</button>
+    <button class="tab-btn" onclick="showTab('dcf')">📈 DCF法</button>
+    <button class="tab-btn" onclick="showTab('summary')">✅ 総合評価</button>
+  </div>
+
+  <!-- ===== MULTIPLE METHOD ===== -->
+  <div id="tab-multiple" class="panel active">
+    <div class="layout">
+      <div class="card">
+        <div class="card-header">
+          <div class="badge badge-blue">1</div>
+          <div>
+            <h2>マルチプル法 — 入力</h2>
+            <div class="subtitle">類似取引・市場倍率による評価</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="info-callout">
+            クリニック業界では <strong>EBITDA倍率 4〜8倍</strong>、<strong>売上高倍率 0.5〜1.5倍</strong> が一般的な目安です。<br>
+            M&Aでは <strong>役員報酬を加算し、新役員報酬を控除した「調整EBITDA」</strong> を使用します。
+          </div>
+
+          <div class="section-title">財務情報</div>
+          <div class="field">
+            <label>年間売上高（万円）</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="m_revenue" value="15000" min="0" oninput="calcMultiple()">
+              <span class="suffix">万円</span>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>営業利益（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="m_ebit" value="3000" min="0" oninput="calcMultiple()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>減価償却費（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="m_da" value="500" min="0" oninput="calcMultiple()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>現役員報酬（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="m_exec_current" value="2400" min="0" oninput="calcMultiple()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">現オーナー医師の役員報酬（加算）</div>
+            </div>
+            <div class="field">
+              <label>新役員報酬（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="m_exec_new" value="1200" min="0" oninput="calcMultiple()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">買収後の管理者報酬見込み（控除）</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>純有利子負債（自動計算）</label>
+            <div style="background:#f0fdf4; border:1px solid #6ee7b7; border-radius:8px; padding:8px 12px; font-size:14px; font-weight:700; color:#065f46;" id="m_debt_auto_disp">— 万円</div>
+            <div class="hint">純資産法タブの「借入金 − 現預金」から自動計算（負値 = ネットキャッシュ）</div>
+          </div>
+
+          <div class="section-title">マルチプル設定</div>
+
+          <div class="field">
+            <label>EV/EBITDA 倍率 — <span id="m_ebitda_mult_val">6.0</span>倍</label>
+            <input type="range" id="m_ebitda_mult" min="0" max="10" step="0.5" value="6" oninput="updateSlider('m_ebitda_mult','m_ebitda_mult_val'); calcMultiple()">
+            <div class="slider-labels"><span>0x</span><span>5x（標準）</span><span>10x（高）</span></div>
+          </div>
+          <div class="field">
+            <label>EV/売上高 倍率 — <span id="m_rev_mult_val">1.0</span>倍</label>
+            <input type="range" id="m_rev_mult" min="0.3" max="2.0" step="0.1" value="1.0" oninput="updateSlider('m_rev_mult','m_rev_mult_val'); calcMultiple()">
+            <div class="slider-labels"><span>0.3x</span><span>1.0x（標準）</span><span>2.0x</span></div>
+          </div>
+
+          <div class="section-title">参考倍率（クリニック業界）</div>
+          <table class="multiple-table">
+            <tr><th>規模・特徴</th><th>EBITDA倍率</th><th>売上倍率</th></tr>
+            <tr><td>小規模クリニック（〜5,000万円売上）</td><td>3〜5x</td><td>0.5〜0.8x</td></tr>
+            <tr class="highlight-row"><td>中規模クリニック（〜2億円売上）</td><td>5〜7x</td><td>0.8〜1.2x</td></tr>
+            <tr><td>大規模・専門クリニック（2億円超）</td><td>6〜10x</td><td>1.0〜1.5x</td></tr>
+            <tr><td>自由診療メイン（美容・審美）</td><td>5〜8x</td><td>1.0〜2.0x</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="badge badge-blue">結果</div>
+          <div>
+            <h2>マルチプル法 — 算定結果</h2>
+            <div class="subtitle">EV/EBITDA・EV/売上高による評価</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="section-title">EV/EBITDA 法（調整EBITDA）</div>
+          <div class="breakdown">
+            <div class="breakdown-row"><span>営業利益</span><span class="val" id="m_ebit_disp">—</span></div>
+            <div class="breakdown-row"><span>＋ 減価償却費</span><span class="val pos" id="m_da_disp">—</span></div>
+            <div class="breakdown-row"><span>＋ 現役員報酬（加算）</span><span class="val pos" id="m_exec_current_disp">—</span></div>
+            <div class="breakdown-row"><span>− 新役員報酬（控除）</span><span class="val neg" id="m_exec_new_disp">—</span></div>
+            <div class="breakdown-row total"><span>調整EBITDA</span><span class="val" id="m_ebitda_disp">—</span></div>
+            <div class="breakdown-row"><span>× 倍率</span><span class="val" id="m_mult1_disp">—</span></div>
+            <div class="breakdown-row"><span>EV（事業価値）</span><span class="val pos" id="m_ev1_disp">—</span></div>
+            <div class="breakdown-row"><span>− 純有利子負債</span><span class="val neg" id="m_debt1_disp">—</span></div>
+            <div class="breakdown-row total"><span>株式価値（買収価格目安）</span><span class="val" id="m_equity1_disp">—</span></div>
+          </div>
+          <div class="result-box">
+            <div class="label">EBITDA倍率法 株式価値</div>
+            <div class="amount" id="m_result_ebitda">— 万円</div>
+          </div>
+
+          <div class="section-title" style="margin-top:20px;">EV/売上高 法</div>
+          <div class="breakdown">
+            <div class="breakdown-row"><span>売上高</span><span class="val" id="m_rev_disp">—</span></div>
+            <div class="breakdown-row"><span>× 倍率</span><span class="val" id="m_mult2_disp">—</span></div>
+            <div class="breakdown-row"><span>EV（事業価値）</span><span class="val pos" id="m_ev2_disp">—</span></div>
+            <div class="breakdown-row"><span>− 純有利子負債</span><span class="val neg" id="m_debt2_disp">—</span></div>
+            <div class="breakdown-row total"><span>株式価値（買収価格目安）</span><span class="val" id="m_equity2_disp">—</span></div>
+          </div>
+          <div class="result-box">
+            <div class="label">売上倍率法 株式価値</div>
+            <div class="amount" id="m_result_rev">— 万円</div>
+          </div>
+
+          <div class="result-box" style="background: linear-gradient(135deg,#1e3a8a,#1d4ed8); border: none; margin-top:16px;">
+            <div class="label" style="color:#93c5fd;">マルチプル法 総合評価レンジ</div>
+            <div class="amount" style="color:#fff; font-size:20px;" id="m_range_disp">— 〜 — 万円</div>
+            <div class="range" style="color:#93c5fd;">EBITDA法と売上高法の参照レンジ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NET ASSET METHOD ===== -->
+  <div id="tab-netasset" class="panel">
+    <div class="layout">
+      <div class="card">
+        <div class="card-header">
+          <div class="badge badge-green">2</div>
+          <div>
+            <h2>純資産法 — 入力</h2>
+            <div class="subtitle">貸借対照表ベースの評価（時価修正）</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="info-callout">
+            クリニックでは <strong>医療機器・内装の時価評価</strong>、<strong>のれん（顧客基盤・ブランド）</strong> の加算が重要です。
+          </div>
+
+          <div class="section-title">資産（簿価）</div>
+          <div class="field-row">
+            <div class="field">
+              <label>現預金（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_cash" value="2000" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>売掛金・未収金（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_ar" value="800" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>医療機器・設備（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_equipment" value="3000" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>内装・リース資産（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_interior" value="1500" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>その他資産（万円）</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="n_other_asset" value="300" min="0" oninput="calcNetAsset()">
+              <span class="suffix">万円</span>
+            </div>
+          </div>
+
+          <div class="section-title">負債（簿価）</div>
+          <div class="field-row">
+            <div class="field">
+              <label>借入金（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_loan" value="2500" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>買掛金・未払金（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_ap" value="400" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>その他負債（万円）</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="n_other_liab" value="200" min="0" oninput="calcNetAsset()">
+              <span class="suffix">万円</span>
+            </div>
+          </div>
+
+          <div class="section-title">時価修正・のれん加算</div>
+          <div class="field">
+            <label>機器時価修正（万円）</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="n_equip_adj" value="-500" oninput="calcNetAsset()">
+              <span class="suffix">万円</span>
+            </div>
+            <div class="hint">時価 − 簿価（マイナスも可）</div>
+          </div>
+
+          <div class="section-title">のれん算出（EBITDA基準）</div>
+          <div style="background:#eff6ff; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12px; color:#1e40af;">
+            <div style="font-weight:700; margin-bottom:4px;">参照：調整EBITDA（マルチプル法より自動連動）</div>
+            <div style="font-size:20px; font-weight:800;" id="n_ref_ebitda">— 万円</div>
+            <div style="font-size:11px; margin-top:2px; opacity:.8;">※マルチプル法タブで入力した営業利益・減価償却・役員報酬から算出</div>
+          </div>
+          <div class="field">
+            <label>のれん倍率 — <span id="n_gw_mult_val">2.0</span> × EBITDA</label>
+            <input type="range" id="n_gw_mult" min="0" max="5" step="0.5" value="2.0" oninput="updateSlider('n_gw_mult','n_gw_mult_val'); calcNetAsset()">
+            <div class="slider-labels"><span>0x</span><span>2.5x（標準）</span><span>5x（高）</span></div>
+          </div>
+          <div style="background:#d1fae5; border-radius:8px; padding:10px 14px; font-size:12px; color:#065f46;">
+            <div style="font-weight:700; margin-bottom:2px;">算出のれん = 調整EBITDA × <span id="n_gw_mult_disp2">2.0</span>倍</div>
+            <div style="font-size:20px; font-weight:800;" id="n_goodwill_calc">— 万円</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="badge badge-green">結果</div>
+          <div>
+            <h2>純資産法 — 算定結果</h2>
+            <div class="subtitle">修正純資産による株式価値</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="section-title">資産合計</div>
+          <div class="breakdown">
+            <div class="breakdown-row"><span>現預金</span><span class="val" id="n_cash_disp">—</span></div>
+            <div class="breakdown-row"><span>売掛金・未収金</span><span class="val" id="n_ar_disp">—</span></div>
+            <div class="breakdown-row"><span>医療機器・設備</span><span class="val" id="n_equip_disp">—</span></div>
+            <div class="breakdown-row"><span>内装・リース資産</span><span class="val" id="n_interior_disp">—</span></div>
+            <div class="breakdown-row"><span>その他資産</span><span class="val" id="n_other_asset_disp">—</span></div>
+            <div class="breakdown-row total"><span>資産合計（簿価）</span><span class="val pos" id="n_total_asset_disp">—</span></div>
+          </div>
+
+          <div class="section-title" style="margin-top:14px;">負債合計</div>
+          <div class="breakdown">
+            <div class="breakdown-row"><span>借入金</span><span class="val neg" id="n_loan_disp">—</span></div>
+            <div class="breakdown-row"><span>買掛金・未払金</span><span class="val neg" id="n_ap_disp">—</span></div>
+            <div class="breakdown-row"><span>その他負債</span><span class="val neg" id="n_other_liab_disp">—</span></div>
+            <div class="breakdown-row total"><span>負債合計</span><span class="val neg" id="n_total_liab_disp">—</span></div>
+          </div>
+
+          <div class="section-title" style="margin-top:14px;">評価調整</div>
+          <div class="breakdown">
+            <div class="breakdown-row"><span>簿価純資産</span><span class="val" id="n_book_net_disp">—</span></div>
+            <div class="breakdown-row"><span>時価修正（機器）</span><span class="val" id="n_equip_adj_disp">—</span></div>
+            <div class="breakdown-row"><span>のれん・ブランド価値</span><span class="val pos" id="n_goodwill_disp">—</span></div>
+            <div class="breakdown-row total"><span>修正純資産（株式価値）</span><span class="val" id="n_total_disp">—</span></div>
+          </div>
+
+          <div class="result-box green">
+            <div class="label">純資産法 株式価値</div>
+            <div class="amount" id="n_result">— 万円</div>
+            <div class="range" id="n_result_sub"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DCF METHOD ===== -->
+  <div id="tab-dcf" class="panel">
+    <div class="layout">
+      <div class="card">
+        <div class="card-header">
+          <div class="badge badge-orange">3</div>
+          <div>
+            <h2>DCF法 — 入力（決算書ベース）</h2>
+            <div class="subtitle">損益計算書・CF計算書の実績数値からFCFを算出</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="info-callout">
+            決算書の実績数値を入力してベースFCFを算出します。FCF = <strong>営業利益×(1−税率) + 減価償却費 − 設備投資 − 運転資本増加額</strong>
+          </div>
+
+          <div class="section-title">📄 損益計算書（P/L）</div>
+          <div class="field-row">
+            <div class="field">
+              <label>売上高（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="d_revenue" value="15000" min="0" oninput="calcDCF()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>営業利益（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="d_ebit" value="3000" min="0" oninput="calcDCF()">
+                <span class="suffix">万円</span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>実効税率 — <span id="d_tax_val">30.0</span>%</label>
+            <input type="range" id="d_tax" min="15" max="40" step="0.5" value="30" oninput="updateSlider('d_tax','d_tax_val'); calcDCF()">
+            <div class="slider-labels"><span>15%</span><span>30%（中小法人標準）</span><span>40%</span></div>
+          </div>
+
+          <div class="section-title">📄 キャッシュフロー計算書（C/F）</div>
+          <div class="field-row">
+            <div class="field">
+              <label>減価償却費（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="d_da" value="500" min="0" oninput="calcDCF()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">加算：非現金費用</div>
+            </div>
+            <div class="field">
+              <label>設備投資 Capex（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="d_capex" value="600" min="0" oninput="calcDCF()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">控除：医療機器・内装更新等</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>運転資本増加額（万円）</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="d_wc" value="200" oninput="calcDCF()">
+              <span class="suffix">万円</span>
+            </div>
+            <div class="hint">控除：売掛金増加 − 買掛金増加（マイナス入力で控除減少）</div>
+          </div>
+
+          <div class="section-title">📈 将来予測・割引率設定</div>
+          <div class="field">
+            <label>FCF成長率（年率） — <span id="d_growth_val">3.0</span>%</label>
+            <input type="range" id="d_growth" min="-5" max="15" step="0.5" value="3" oninput="updateSlider('d_growth','d_growth_val'); calcDCF()">
+            <div class="slider-labels"><span>−5%（縮小）</span><span>3%（横ばい）</span><span>15%（高成長）</span></div>
+          </div>
+          <div class="field">
+            <label>割引率（WACC） — <span id="d_wacc_val">10.0</span>%</label>
+            <input type="range" id="d_wacc" min="6" max="20" step="0.5" value="10" oninput="updateSlider('d_wacc','d_wacc_val'); calcDCF()">
+            <div class="slider-labels"><span>6%（低リスク）</span><span>10%（標準）</span><span>20%（高リスク）</span></div>
+          </div>
+          <div class="field">
+            <label>ターミナル成長率 — <span id="d_terminal_val">1.0</span>%</label>
+            <input type="range" id="d_terminal" min="0" max="3" step="0.1" value="1.0" oninput="updateSlider('d_terminal','d_terminal_val'); calcDCF()">
+            <div class="slider-labels"><span>0%</span><span>1%（標準）</span><span>3%（楽観）</span></div>
+          </div>
+
+          <div class="section-title">📄 貸借対照表（B/S）</div>
+          <div class="field-row">
+            <div class="field">
+              <label>純有利子負債（自動計算）</label>
+              <div style="background:#f0fdf4; border:1px solid #6ee7b7; border-radius:8px; padding:8px 12px; font-size:14px; font-weight:700; color:#065f46;" id="d_debt_auto_disp">— 万円</div>
+              <div class="hint">純資産法タブの「借入金 − 現預金」から自動計算（負値 = ネットキャッシュ）</div>
+            </div>
+            <div class="field">
+              <label>予測年数</label>
+              <select id="d_years" onchange="calcDCF()">
+                <option value="1">1年</option>
+                <option value="2">2年</option>
+                <option value="3">3年</option>
+                <option value="4">4年</option>
+                <option value="5" selected>5年</option>
+                <option value="6">6年</option>
+                <option value="7">7年</option>
+                <option value="8">8年</option>
+                <option value="9">9年</option>
+                <option value="10">10年</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="badge badge-orange">結果</div>
+          <div>
+            <h2>DCF法 — 算定結果</h2>
+            <div class="subtitle">決算書ベースFCF × 将来予測による企業価値</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="section-title">ベースFCF算出（決算書より）</div>
+          <div class="breakdown">
+            <div class="breakdown-row"><span>営業利益</span><span class="val" id="d_ebit_disp">—</span></div>
+            <div class="breakdown-row"><span>× (1 − 実効税率)</span><span class="val" id="d_tax_disp">—</span></div>
+            <div class="breakdown-row"><span>= NOPAT（税引後営業利益）</span><span class="val pos" id="d_nopat_disp">—</span></div>
+            <div class="breakdown-row"><span>＋ 減価償却費</span><span class="val pos" id="d_da_disp">—</span></div>
+            <div class="breakdown-row"><span>− 設備投資（Capex）</span><span class="val neg" id="d_capex_disp">—</span></div>
+            <div class="breakdown-row"><span>− 運転資本増加額</span><span class="val neg" id="d_wc_disp">—</span></div>
+            <div class="breakdown-row total"><span>ベース FCF（フリーCF）</span><span class="val" id="d_base_fcf_disp">—</span></div>
+          </div>
+
+          <div class="section-title" style="margin-top:16px;">FCF予測テーブル</div>
+          <div style="overflow-x:auto;">
+            <table class="dcf-table" id="dcf_table">
+              <thead>
+                <tr>
+                  <th>項目</th>
+                  <th>Year 1</th>
+                  <th>Year 2</th>
+                  <th>Year 3</th>
+                  <th>Year 4</th>
+                  <th>Year 5</th>
+                </tr>
+              </thead>
+              <tbody id="dcf_tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="breakdown" style="margin-top:14px;">
+            <div class="breakdown-row"><span>FCF 現在価値合計（予測期間）</span><span class="val pos" id="d_pv_fcf_disp">—</span></div>
+            <div class="breakdown-row"><span>ターミナルバリュー（TV）</span><span class="val pos" id="d_tv_disp">—</span></div>
+            <div class="breakdown-row"><span>TV の現在価値</span><span class="val pos" id="d_pv_tv_disp">—</span></div>
+            <div class="breakdown-row total"><span>EV（事業価値）</span><span class="val" id="d_ev_disp">—</span></div>
+            <div class="breakdown-row"><span>− 純有利子負債</span><span class="val neg" id="d_debt_disp">—</span></div>
+            <div class="breakdown-row total"><span>株式価値（買収価格目安）</span><span class="val" id="d_equity_disp">—</span></div>
+          </div>
+
+          <div class="result-box orange">
+            <div class="label">DCF法 株式価値</div>
+            <div class="amount" id="d_result">— 万円</div>
+            <div class="range" id="d_tv_ratio"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SUMMARY ===== -->
+  <div id="tab-summary" class="panel">
+    <div class="card summary-card">
+      <div class="card-header">
+        <div class="badge badge-purple">✓</div>
+        <div>
+          <h2>総合評価サマリー</h2>
+          <div class="subtitle">3手法の統合分析・買収価格レコメンデーション</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="summary-grid">
+          <div class="summary-item" id="sum_multiple">
+            <div class="method">📊 マルチプル法</div>
+            <div class="val" id="sum_m_val" style="color:var(--primary)">— 万円</div>
+            <div class="sub" id="sum_m_sub">（EBITDA / 売上倍率）</div>
+          </div>
+          <div class="summary-item" id="sum_netasset">
+            <div class="method">🏦 純資産法</div>
+            <div class="val" id="sum_n_val" style="color:var(--accent)">— 万円</div>
+            <div class="sub">（修正純資産）</div>
+          </div>
+          <div class="summary-item" id="sum_dcf">
+            <div class="method">📈 DCF法</div>
+            <div class="val" id="sum_d_val" style="color:var(--warn)">— 万円</div>
+            <div class="sub">（将来CF割引）</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="bar-chart" id="sum_chart"></div>
+        </div>
+
+        <div style="background:var(--bg); border-radius:10px; padding:16px; margin-bottom:16px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:10px;">ウェイト設定（合計100%）</div>
+          <div class="field-row" style="gap:16px; align-items:center;">
+            <div class="field" style="margin:0">
+              <label>マルチプル法 <span id="w_m_val">40</span>%</label>
+              <input type="range" id="w_m" min="0" max="100" value="40" oninput="updateWeights('w_m')">
+            </div>
+            <div class="field" style="margin:0">
+              <label>純資産法 <span id="w_n_val">20</span>%</label>
+              <input type="range" id="w_n" min="0" max="100" value="20" oninput="updateWeights('w_n')">
+            </div>
+            <div class="field" style="margin:0">
+              <label>DCF法 <span id="w_d_val">40</span>%</label>
+              <input type="range" id="w_d" min="0" max="100" value="40" oninput="updateWeights('w_d')">
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:16px; align-items:stretch; flex-wrap:wrap;">
+          <div style="flex:1; min-width:220px; background:linear-gradient(135deg,#1e3a8a,#1d4ed8); border-radius:12px; padding:20px; color:#fff;">
+            <div style="font-size:12px; opacity:.8; margin-bottom:6px;">加重平均 買収価格目安</div>
+            <div style="font-size:32px; font-weight:800;" id="sum_weighted">— 万円</div>
+            <div style="font-size:11px; opacity:.7; margin-top:4px;">3手法の加重平均値</div>
+          </div>
+          <div style="flex:1; min-width:220px; background:linear-gradient(135deg,#064e3b,#059669); border-radius:12px; padding:20px; color:#fff;">
+            <div style="font-size:12px; opacity:.8; margin-bottom:6px;">推奨交渉レンジ</div>
+            <div style="font-size:22px; font-weight:800;" id="sum_range">— 〜 — 万円</div>
+            <div style="font-size:11px; opacity:.7; margin-top:4px;">加重平均 ±15%</div>
+          </div>
+        </div>
+
+        <div class="recommendation-box" style="margin-top:16px;">
+          <h3>💡 クリニックM&A 評価ポイント</h3>
+          <p id="sum_recommendation">各手法の数値を入力すると、ここに評価コメントが表示されます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────
+const state = {
+  multiple: { ebitda: 0, rev: 0, range: [0, 0] },
+  netasset: { value: 0 },
+  dcf:      { value: 0 }
+};
+
+// ─── Utilities ───────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const fmt = n => {
+  if (isNaN(n) || n === null) return '—';
+  return Math.round(n).toLocaleString('ja-JP') + ' 万円';
+};
+const fmtNum = n => isNaN(n) ? '—' : Math.round(n).toLocaleString('ja-JP');
+const val = id => parseFloat($(id).value) || 0;
+
+function updateSlider(sliderId, labelId) {
+  $(labelId).textContent = parseFloat($(sliderId).value).toFixed(1);
+}
+
+function showTab(name) {
+  ['multiple', 'netasset', 'dcf', 'summary'].forEach(t => {
+    $('tab-' + t).classList.toggle('active', t === name);
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.remove('active');
+  });
+  const tabs = ['multiple', 'netasset', 'dcf', 'summary'];
+  document.querySelectorAll('.tab-btn')[tabs.indexOf(name)].classList.add('active');
+  if (name === 'summary') updateSummary();
+}
+
+// ─── 循環参照防止フラグ ───────────────────────────────────────
+let _recalcInProgress = false;
+
+// ─── Multiple Method ─────────────────────────────────────────
+function calcMultiple() {
+  const revenue     = val('m_revenue');
+  const ebit        = val('m_ebit');
+  const da          = val('m_da');
+  const execCurrent = val('m_exec_current');
+  const execNew     = val('m_exec_new');
+  // 純有利子負債 = 借入金 − 現預金（純資産法タブから自動取得）
+  const debt        = val('n_loan') - val('n_cash');
+  const ebitdaMult  = val('m_ebitda_mult');
+  const revMult     = val('m_rev_mult');
+
+  // 調整EBITDA = 営業利益 + 減価償却費 + 現役員報酬 − 新役員報酬
+  const ebitda = ebit + da + execCurrent - execNew;
+  const ev1    = ebitda * ebitdaMult;
+  const eq1    = ev1 - debt;
+  const ev2    = revenue * revMult;
+  const eq2    = ev2 - debt;
+
+  // 純有利子負債の自動表示更新
+  const debtLabel = debt < 0
+    ? `${fmtNum(Math.abs(Math.round(debt)))} 万円（ネットキャッシュ）`
+    : fmt(debt);
+  if ($('m_debt_auto_disp')) $('m_debt_auto_disp').textContent = debtLabel;
+
+  $('m_ebit_disp').textContent         = fmt(ebit);
+  $('m_da_disp').textContent           = '＋ ' + fmtNum(da) + ' 万円';
+  $('m_exec_current_disp').textContent = '＋ ' + fmtNum(execCurrent) + ' 万円';
+  $('m_exec_new_disp').textContent     = '− ' + fmtNum(execNew) + ' 万円';
+  $('m_ebitda_disp').textContent       = fmt(ebitda);
+  $('m_mult1_disp').textContent        = ebitdaMult.toFixed(1) + ' 倍';
+  $('m_ev1_disp').textContent          = fmt(ev1);
+  $('m_debt1_disp').textContent        = fmt(debt);
+  $('m_equity1_disp').textContent      = fmt(eq1);
+  $('m_result_ebitda').textContent     = fmt(eq1);
+
+  $('m_rev_disp').textContent      = fmt(revenue);
+  $('m_mult2_disp').textContent    = revMult.toFixed(1) + ' 倍';
+  $('m_ev2_disp').textContent      = fmt(ev2);
+  $('m_debt2_disp').textContent    = fmt(debt);
+  $('m_equity2_disp').textContent  = fmt(eq2);
+  $('m_result_rev').textContent    = fmt(eq2);
+
+  const lo = Math.min(eq1, eq2);
+  const hi = Math.max(eq1, eq2);
+  $('m_range_disp').textContent = `${fmtNum(lo)} 〜 ${fmtNum(hi)} 万円`;
+
+  state.multiple = { ebitda: eq1, rev: eq2, range: [lo, hi], adjustedEbitda: ebitda };
+
+  // 純資産法ののれんを再計算（EBITDA連動）
+  calcNetAsset();
+}
+
+// ─── Net Asset Method ────────────────────────────────────────
+function calcNetAsset() {
+  const cash      = val('n_cash');
+  const ar        = val('n_ar');
+  const equipment = val('n_equipment');
+  const interior  = val('n_interior');
+  const otherA    = val('n_other_asset');
+  const loan      = val('n_loan');
+  const ap        = val('n_ap');
+  const otherL    = val('n_other_liab');
+  const equipAdj  = val('n_equip_adj');
+  const gwMult    = val('n_gw_mult');
+
+  // のれん = 調整EBITDA（マルチプル法より） × のれん倍率
+  const adjEbitda = state.multiple.adjustedEbitda || 0;
+  const goodwill  = adjEbitda * gwMult;
+
+  const totalAsset = cash + ar + equipment + interior + otherA;
+  const totalLiab  = loan + ap + otherL;
+  const bookNet    = totalAsset - totalLiab;
+  const adjNet     = bookNet + equipAdj + goodwill;
+
+  // 入力パネルの参照表示更新
+  $('n_ref_ebitda').textContent      = fmt(adjEbitda);
+  $('n_gw_mult_disp2').textContent   = gwMult.toFixed(1);
+  $('n_goodwill_calc').textContent   = fmt(goodwill);
+
+  // 結果パネル
+  $('n_cash_disp').textContent        = fmt(cash);
+  $('n_ar_disp').textContent          = fmt(ar);
+  $('n_equip_disp').textContent       = fmt(equipment);
+  $('n_interior_disp').textContent    = fmt(interior);
+  $('n_other_asset_disp').textContent = fmt(otherA);
+  $('n_total_asset_disp').textContent = fmt(totalAsset);
+
+  $('n_loan_disp').textContent        = '▲ ' + fmtNum(loan) + ' 万円';
+  $('n_ap_disp').textContent          = '▲ ' + fmtNum(ap) + ' 万円';
+  $('n_other_liab_disp').textContent  = '▲ ' + fmtNum(otherL) + ' 万円';
+  $('n_total_liab_disp').textContent  = '▲ ' + fmtNum(totalLiab) + ' 万円';
+
+  $('n_book_net_disp').textContent    = fmt(bookNet);
+  $('n_equip_adj_disp').textContent   = (equipAdj >= 0 ? '+' : '') + fmtNum(equipAdj) + ' 万円';
+  $('n_goodwill_disp').textContent    = `+${fmtNum(Math.round(goodwill))} 万円（${gwMult.toFixed(1)}× EBITDA ${fmtNum(Math.round(adjEbitda))}万円）`;
+  $('n_total_disp').textContent       = fmt(adjNet);
+  $('n_result').textContent           = fmt(adjNet);
+  $('n_result_sub').textContent       = `簿価純資産 ${fmtNum(Math.round(bookNet))} ＋ のれん ${fmtNum(Math.round(goodwill))} ＋ 機器修正 ${fmtNum(equipAdj)} 万円`;
+
+  state.netasset = { value: adjNet };
+
+  // 純資産法の入力（n_loan/n_cash）が変わったとき、マルチプル法とDCF法も更新
+  // 循環参照（calcMultiple→calcNetAsset→calcMultiple）を防止するガードフラグ
+  if (!_recalcInProgress) {
+    _recalcInProgress = true;
+    calcMultiple(); // 内部でcalcNetAssetを呼ぶがフラグにより無限ループしない
+    calcDCF();
+    _recalcInProgress = false;
+  }
+}
+
+// ─── DCF Method ──────────────────────────────────────────────
+function calcDCF() {
+  const revenue = val('d_revenue');
+  const ebit    = val('d_ebit');
+  const taxRate = val('d_tax') / 100;
+  const da      = val('d_da');
+  const capex   = val('d_capex');
+  const wc      = val('d_wc');
+  const growth  = val('d_growth') / 100;
+  const wacc    = val('d_wacc') / 100;
+  const gTerm   = val('d_terminal') / 100;
+  // 純有利子負債 = 借入金 − 現預金（純資産法タブから自動取得）
+  const debt    = val('n_loan') - val('n_cash');
+  const years   = parseInt($('d_years').value);
+
+  // DCF法タブの純有利子負債自動表示更新
+  const debtLabelD = debt < 0
+    ? `${fmtNum(Math.abs(Math.round(debt)))} 万円（ネットキャッシュ）`
+    : fmt(debt);
+  if ($('d_debt_auto_disp')) $('d_debt_auto_disp').textContent = debtLabelD;
+
+  // ベースFCF算出（決算書より）
+  // FCF = 営業利益 × (1 - 税率) + 減価償却費 - 設備投資 - 運転資本増加額
+  const nopat   = ebit * (1 - taxRate);
+  const baseFCF = nopat + da - capex - wc;
+
+  // ベースFCF内訳表示
+  $('d_ebit_disp').textContent     = fmt(ebit);
+  $('d_tax_disp').textContent      = `(1 − ${(taxRate*100).toFixed(1)}%) = ${(1-taxRate).toFixed(3)}`;
+  $('d_nopat_disp').textContent    = fmt(nopat);
+  $('d_da_disp').textContent       = '＋ ' + fmtNum(da) + ' 万円';
+  $('d_capex_disp').textContent    = '− ' + fmtNum(capex) + ' 万円';
+  $('d_wc_disp').textContent       = '− ' + fmtNum(wc) + ' 万円';
+  $('d_base_fcf_disp').textContent = fmt(baseFCF);
+
+  // テーブルヘッダー更新
+  const thead = document.querySelector('#dcf_table thead tr');
+  thead.innerHTML = '<th>項目</th>' + Array.from({length: years}, (_, i) => `<th>Year ${i+1}</th>`).join('');
+
+  // 将来FCF予測（ベースFCFに成長率を適用）
+  let pvSum = 0;
+  const fcfs = [], pvs = [], discounts = [];
+
+  for (let y = 1; y <= years; y++) {
+    const fcf      = baseFCF * Math.pow(1 + growth, y);
+    const discount = 1 / Math.pow(1 + wacc, y);
+    const pv       = fcf * discount;
+    fcfs.push(fcf);
+    discounts.push(discount);
+    pvs.push(pv);
+    pvSum += pv;
+  }
+
+  // ターミナルバリュー（ゴードン成長モデル）
+  const lastFCF = fcfs[years - 1];
+  const tv      = (wacc - gTerm) !== 0 ? lastFCF * (1 + gTerm) / (wacc - gTerm) : 0;
+  const pvTV    = tv / Math.pow(1 + wacc, years);
+  const ev      = pvSum + pvTV;
+  const equity  = ev - debt;
+
+  // テーブル描画
+  const tbody = $('dcf_tbody');
+  tbody.innerHTML = [
+    buildRow('FCF（万円）',     fcfs),
+    buildRow('割引係数',        discounts, true),
+    buildRow('FCF現在価値（万円）', pvs),
+  ].join('') + `<tr class="total-row"><td>累計 PV（FCF）</td><td colspan="${years}" style="text-align:right;">${fmtNum(Math.round(pvSum))} 万円</td></tr>`;
+
+  $('d_pv_fcf_disp').textContent = fmt(pvSum);
+  $('d_tv_disp').textContent     = fmt(tv);
+  $('d_pv_tv_disp').textContent  = fmt(pvTV);
+  $('d_ev_disp').textContent     = fmt(ev);
+  $('d_debt_disp').textContent   = fmt(debt);
+  $('d_equity_disp').textContent = fmt(equity);
+  $('d_result').textContent      = fmt(equity);
+  $('d_tv_ratio').textContent    = ev > 0 ? `TV比率: ${Math.round(pvTV/ev*100)}%　ベースFCF: ${fmtNum(Math.round(baseFCF))} 万円` : '';
+
+  state.dcf = { value: equity };
+}
+
+function buildRow(label, values, isRatio) {
+  const cells = values.map(v => `<td>${isRatio ? v.toFixed(3) : fmtNum(Math.round(v))}</td>`).join('');
+  return `<tr><td>${label}</td>${cells}</tr>`;
+}
+
+// ─── Summary ─────────────────────────────────────────────────
+function updateSummary() {
+  const m = (state.multiple.ebitda + state.multiple.rev) / 2;
+  const n = state.netasset.value;
+  const d = state.dcf.value;
+
+  const wm = val('w_m') / 100;
+  const wn = val('w_n') / 100;
+  const wd = val('w_d') / 100;
+  const wTotal = wm + wn + wd;
+
+  $('sum_m_val').textContent = fmt(m);
+  $('sum_n_val').textContent = fmt(n);
+  $('sum_d_val').textContent = fmt(d);
+
+  const weighted = wTotal > 0 ? (m * wm + n * wn + d * wd) / wTotal : (m + n + d) / 3;
+  $('sum_weighted').textContent = fmt(weighted);
+  $('sum_range').textContent = `${fmtNum(Math.round(weighted * 0.85))} 〜 ${fmtNum(Math.round(weighted * 1.15))} 万円`;
+
+  // Bar chart
+  const vals = [m, n, d];
+  const labels = ['マルチプル法', '純資産法', 'DCF法'];
+  const colors = ['#1a56db', '#0e9f6e', '#e3a008'];
+  const maxV = Math.max(...vals.filter(v => !isNaN(v) && v > 0), 1);
+  const chart = $('sum_chart');
+  chart.innerHTML = vals.map((v, i) => {
+    const pct = Math.max((v / maxV) * 100, 2);
+    return `<div class="bar-group">
+      <div class="bar-val">${fmtNum(Math.round(v))}</div>
+      <div class="bar-outer">
+        <div class="bar" style="height:${pct}%; background:${colors[i]};"></div>
+      </div>
+      <div class="bar-label">${labels[i]}</div>
+    </div>`;
+  }).join('');
+
+  // Recommendation
+  const max = Math.max(m, n, d);
+  const min = Math.min(m, n, d);
+  const spread = max - min;
+  const spreadPct = max > 0 ? Math.round((spread / max) * 100) : 0;
+  let comment = '';
+  if (spreadPct < 20) {
+    comment = `3手法の評価額が比較的収束しており（乖離率 ${spreadPct}%）、加重平均 ${fmtNum(Math.round(weighted))} 万円前後を基準に交渉を進めることを推奨します。各手法の数値に大きな矛盾がなく、信頼性の高い評価結果といえます。`;
+  } else if (spreadPct < 50) {
+    comment = `3手法間に ${spreadPct}% の乖離があります。マルチプル法を市場参照として重視しつつ、DCF法で将来性を加味する加重平均アプローチが有効です。交渉では${fmtNum(Math.round(weighted*0.9))}〜${fmtNum(Math.round(weighted*1.1))} 万円のレンジを念頭に置いてください。`;
+  } else {
+    comment = `3手法間の乖離が大きく（${spreadPct}%）、評価前提条件を再確認することを推奨します。純資産が低い場合はのれん・患者基盤の評価を見直し、DCFが大きく乖離する場合は成長率・割引率の妥当性を再検討してください。`;
+  }
+  $('sum_recommendation').textContent = comment;
+}
+
+function updateWeights(changedId) {
+  const ids = ['w_m', 'w_n', 'w_d'];
+  const changed = ids.indexOf(changedId);
+  const values = ids.map(id => parseInt($(id).value));
+  const changedVal = values[changed];
+  const others = ids.filter((_, i) => i !== changed);
+  const remaining = 100 - changedVal;
+  const otherSum = values.filter((_, i) => i !== changed).reduce((a, b) => a + b, 0);
+
+  if (otherSum > 0) {
+    others.forEach((id, i) => {
+      const idx = ids.indexOf(id);
+      const newVal = Math.round(values[idx] / otherSum * remaining);
+      $(id).value = newVal;
+    });
+  } else {
+    others.forEach(id => $(id).value = Math.round(remaining / 2));
+  }
+
+  ids.forEach(id => $(`${id}_val`).textContent = $(id).value);
+  updateSummary();
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+// 初期化中は循環呼び出しを防止（全て明示的に呼ぶため）
+_recalcInProgress = true;
+calcMultiple();
+calcNetAsset();
+calcDCF();
+_recalcInProgress = false;
+
+// ══════════════════════════════════════════════════════════════
+// 決算書読み込み機能
+// ══════════════════════════════════════════════════════════════
+
+// PDF.js ワーカー設定
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ── 抽出フィールド定義（医療法人・企業概要書対応）─────────────
+// ★ キーワードはスペース除去後の正規化テキストで照合するため、
+//    全角スペース・文字間スペースのある PDF にも対応
+const EXTRACT_FIELDS = [
+  {
+    key: 'revenue', label: '売上高', inputIds: ['m_revenue', 'd_revenue'],
+    fieldNames: ['マルチプル法：売上高', 'DCF法：売上高'],
+    note: '直近期の合計売上高',
+    patterns: [
+      '調整前売上高', '調整後売上高',
+      '売上高', '総売上高',
+      '医業収益合計', '医業収入合計', '医業収益', '医業収入',
+      '収入合計', '診療収入', '診療報酬収入',
+    ],
+  },
+  {
+    key: 'opProfit', label: '営業利益（調整前）', inputIds: ['m_ebit', 'd_ebit'],
+    fieldNames: ['マルチプル法：営業利益', 'DCF法：営業利益'],
+    note: '修正前の実績営業利益（調整前）',
+    patterns: [
+      '調整前営業利益',
+      '営業利益　A', '営業利益A', '営業利益（A）',
+      '営業利益', '医業利益',
+    ],
+  },
+  {
+    key: 'depreciation', label: '減価償却費', inputIds: ['m_da', 'd_da'],
+    fieldNames: ['マルチプル法：減価償却費', 'DCF法：減価償却費'],
+    note: '販売費・一般管理費内の減価償却費',
+    patterns: [
+      '減価償却費　C', '減価償却費C', '減価償却費（C）',
+      '減価償却費', '償却費',
+    ],
+  },
+  {
+    key: 'execComp', label: '役員報酬（現・合計）', inputIds: ['m_exec_current'],
+    fieldNames: ['マルチプル法：現役員報酬'],
+    note: '現役員全員分の合計（修正事項Bの加算額）',
+    patterns: [
+      '役員報酬　B', '役員報酬B', '役員報酬（B）',
+      '役員報酬', '役員給与', '役員賞与',
+    ],
+  },
+  {
+    key: 'execNew', label: '新役員報酬（買収後）', inputIds: ['m_exec_new'],
+    fieldNames: ['マルチプル法：新役員報酬'],
+    note: '買収後の新代表者・理事長報酬',
+    patterns: [
+      '新任代表者報酬', '新任理事長報酬',
+      '新任代表', '新任理事長',
+      '新役員報酬', '新代表者報酬', '新理事長',
+    ],
+  },
+  {
+    key: 'cash', label: '現金・預金', inputIds: ['n_cash'],
+    fieldNames: ['純資産法：現預金'],
+    note: '修正後BS（時価）の現預金を優先',
+    patterns: [
+      '現金及び預金', '現金及び銀行預金',
+      '現金・預金', '現金預金',
+      '現金及び現金同等物',
+      '現預金', '現金',
+    ],
+  },
+  {
+    key: 'ar', label: '医業未収金・売掛金', inputIds: ['n_ar'],
+    fieldNames: ['純資産法：売掛金・未収金'],
+    note: '保険請求中の未収金を含む',
+    patterns: [
+      '医業未収金', '診療報酬未収金', '診療未収金',
+      '売掛金', '未収入金', '未収金',
+    ],
+  },
+  {
+    key: 'equipment', label: '医療用器械備品', inputIds: ['n_equipment'],
+    fieldNames: ['純資産法：医療機器・設備'],
+    note: '修正BSがあれば修正後の値を使用',
+    patterns: [
+      '医療用器械備品', '器械備品', '医療用機械備品',
+      '医療機器', '工具器具備品', '備品',
+    ],
+  },
+  {
+    key: 'interior', label: '建物・建物附属設備', inputIds: ['n_interior'],
+    fieldNames: ['純資産法：内装・リース資産'],
+    note: '修正BSがあれば修正後の値を使用',
+    patterns: [
+      '建物附属設備', '建物付属設備',
+      'リース資産', '内装工事',
+      '建物',
+    ],
+  },
+  {
+    key: 'loan', label: '有利子負債（借入金）', inputIds: ['n_loan'],
+    fieldNames: ['純資産法：借入金'],
+    note: '金融機関借入 ＋ 役員借入の合計',
+    patterns: [
+      '有利子負債合計', '借入金合計', '長短借入金合計',
+      '長期借入金', '短期借入金',
+      '金融機関借入金', '借入金',
+    ],
+  },
+  {
+    key: 'ap', label: '未払金・未払費用', inputIds: ['n_ap'],
+    fieldNames: ['純資産法：買掛金・未払金'],
+    note: '流動負債の主要科目',
+    patterns: [
+      '未払費用', '未払金', '買掛金', '未払医業費用',
+    ],
+  },
+  {
+    key: 'capex', label: '設備投資（Capex）', inputIds: ['d_capex'],
+    fieldNames: ['DCF法：設備投資'],
+    note: 'CF計算書の投資活動CF',
+    patterns: [
+      '有形固定資産の取得', '固定資産の取得', '有形固定資産取得',
+      '設備投資額', '設備投資',
+    ],
+  },
+  // 純有利子負債はメインアプリで自動計算（n_loan − n_cash）のため抽出不要
+  // 借入金（n_loan）と現預金（n_cash）を抽出して純資産法タブに反映すれば自動連動
+];
+
+let lastRawText   = '';
+let extractedData = {};
+
+// ── モーダル制御 ───────────────────────────────────────────────
+function openUploadModal()  { $('upload-modal').classList.add('open'); }
+function closeUploadModal() { $('upload-modal').classList.remove('open'); }
+
+function switchUploadTab(tab) {
+  document.querySelectorAll('.upload-tab-btn').forEach((b, i) =>
+    b.classList.toggle('active', ['pdf','paste'][i] === tab));
+  document.querySelectorAll('.upload-panel').forEach((p, i) =>
+    p.classList.toggle('active', ['pdf','paste'][i] === tab));
+}
+
+// ── ドラッグ＆ドロップ ────────────────────────────────────────
+function onDragOver(e)  { e.preventDefault(); $('drop-zone').classList.add('drag-over'); }
+function onDragLeave()  { $('drop-zone').classList.remove('drag-over'); }
+function onDrop(e) {
+  e.preventDefault(); $('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function onFileSelected(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+// ── PDF処理 ───────────────────────────────────────────────────
+async function processFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    showProgress('❌ PDFファイルを選択してください', 0); return;
+  }
+  if (typeof pdfjsLib === 'undefined') {
+    showProgress('❌ PDF.jsの読み込みに失敗しました。インターネット接続を確認してください', 0); return;
+  }
+  showProgress(`📄 "${file.name}" を解析中…`, 20);
+  $('drop-zone').querySelector('.dz-title').textContent = `📄 ${file.name}`;
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    showProgress('🔍 テキストを抽出中…', 50);
+    const pdf      = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let   fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page    = await pdf.getPage(i);
+      const content = await page.getTextContent();
+
+      // ★ 改善：Y座標でグループ化（同一行判定を±5px に緩和）し、
+      //    同一行内はX座標順に並べる → ラベルと数字が同一行に収まりやすくなる
+      const items = content.items.filter(it => it.str.trim());
+      // Y座標の降順でソート（上から下へ）、同じYはX昇順
+      items.sort((a, b) =>
+        (b.transform[5] - a.transform[5]) || (a.transform[4] - b.transform[4]));
+
+      let lastY = null, line = '';
+      for (const item of items) {
+        const y = Math.round(item.transform[5]);
+        // ±5px 以内は同一行とみなす（フォントサイズによるズレを吸収）
+        if (lastY !== null && Math.abs(y - lastY) > 5) {
+          fullText += line.trim() + '\n';
+          line = '';
+        }
+        line += item.str + ' ';
+        lastY = y;
+      }
+      if (line.trim()) fullText += line.trim() + '\n';
+      fullText += '\n'; // ページ区切り
+    }
+    showProgress('📊 財務数値を解析中…', 80);
+    lastRawText = fullText;
+    autoDetectUnit(fullText);
+    parseAndShow(fullText, parseFloat($('unit-select').value));
+    showProgress('✅ 解析完了', 100);
+  } catch (err) {
+    showProgress(`❌ 解析エラー: ${err.message}`, 0);
+  }
+}
+
+// ── テキスト貼り付け解析 ─────────────────────────────────────
+function parsePastedText() {
+  const text = $('paste-area').value.trim();
+  if (!text) { alert('テキストを入力してください'); return; }
+  lastRawText = text;
+  autoDetectUnit(text);
+  parseAndShow(text, parseFloat($('unit-select').value));
+}
+
+function reparse() {
+  if (lastRawText) parseAndShow(lastRawText, parseFloat($('unit-select').value));
+}
+
+// ── 単位自動検出 ──────────────────────────────────────────────
+function autoDetectUnit(text) {
+  const sel = $('unit-select');
+  if (/単位[：:\s]*百万円/.test(text))     { sel.value = '100';    sel.options[0].text = '百万円（自動検出）'; }
+  else if (/単位[：:\s]*万円/.test(text))  { sel.value = '1';      sel.options[0].text = '万円（自動検出）'; }
+  else if (/単位[：:\s]*千円/.test(text))  { sel.value = '0.1';    sel.options[0].text = '千円（自動検出）'; }
+  else if (/単位[：:\s]*円/.test(text))    { sel.value = '0.0001'; sel.options[0].text = '円（自動検出）'; }
+  else                                     { sel.value = '0.1';    sel.options[0].text = '千円（推定）'; }
+  $('unit-row').style.display = 'flex';
+}
+
+// ── 財務数値パース（医療法人・企業概要書対応）────────────────
+function parseAndShow(text, multiplier) {
+  const results = {};
+
+  // 行に分割。空行除去・トリム
+  const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
+
+  // ★ 各行の「スペース除去版」を用意 → 文字間スペースのある PDF に対応
+  //    例: "現 金 ・ 預 金" → "現金・預金"
+  const normLines = lines.map(l => l.replace(/[\s　]+/g, ''));
+
+  for (const field of EXTRACT_FIELDS) {
+    const allCands = [];
+    const seenKeys = new Set(); // "rawNum_lineIdx" で重複排除（値が偶然一致する別行を区別）
+
+    for (const keyword of field.patterns) {
+      // キーワード自身もスペース除去して照合
+      const normKeyword = keyword.replace(/[\s　]+/g, '');
+
+      for (let li = 0; li < lines.length; li++) {
+        if (!normLines[li].includes(normKeyword)) continue;
+
+        // キーワード行から最大6行を結合（値が次行以降にある場合に対応）
+        const ctxLines = lines.slice(li, Math.min(li + 6, lines.length));
+        const normCtxLines = normLines.slice(li, Math.min(li + 6, normLines.length));
+        const normCtx = normCtxLines.join(' ');
+
+        // 正規化コンテキスト内でキーワード以降のテキストを取得
+        const normKwEnd = normCtx.indexOf(normKeyword) + normKeyword.length;
+        const afterKw = normCtx.substring(normKwEnd);
+
+        // ★ 数値パターン改善
+        //   ・カンマ区切り: 1〜3桁 + (,3桁)+ 　例: 5,200 / 1,234,567
+        //   ・連続数字: 4桁以上（カンマなし）　例: 5200 / 12000
+        //   ・パーセント表記（全角/半角）は除外
+        const cleaned = afterKw
+          .replace(/[\d,.]+[%％]/g, 'PCT') // パーセント前の数字を除外
+          .replace(/\.\d+/g, '');          // 小数部分を除去（整数のみ対象）
+
+        const numRe = /([▲△\-])?\s*([\d]{1,3}(?:,[\d]{3})+|[\d]{4,})/g;
+        let m;
+        const lineNums = [];
+
+        while ((m = numRe.exec(cleaned)) !== null) {
+          const isNeg  = !!(m[1]);
+          const rawStr = m[2].replace(/,/g, '');
+          const rawNum = parseInt(rawStr);
+
+          // ★ 合理性チェック緩和：10以上（千円単位で1万円相当） 〜 9,999億
+          if (rawNum < 10 || rawNum > 9999999999) continue;
+
+          const manVal = Math.round(rawNum * multiplier);
+
+          // 同一行・同一値の重複を排除
+          const dedupeKey = `${rawNum}_${li}`;
+          if (seenKeys.has(dedupeKey)) continue;
+          seenKeys.add(dedupeKey);
+
+          lineNums.push({ raw: m[2], value: isNeg ? -manVal : manVal, keyword });
+        }
+
+        // 3期並列表（2つ以上の数字がある行）→ 最後が最新期
+        lineNums.forEach((n, idx) => {
+          allCands.push({
+            ...n,
+            recommended: lineNums.length >= 2 && idx === lineNums.length - 1,
+          });
+        });
+      }
+    }
+
+    // 推奨候補（直近期）を先頭に
+    const sorted = [
+      ...allCands.filter(c => c.recommended),
+      ...allCands.filter(c => !c.recommended),
+    ];
+    const best = sorted[0];
+
+    results[field.key] = {
+      candidates: sorted,
+      value:      best ? Math.abs(best.value) : 0,
+      raw:        best ? best.raw : '—',
+      found:      sorted.length > 0,
+      keyword:    best ? best.keyword : '',
+    };
+  }
+
+  // 純有利子負債はメインアプリがn_loan/n_cashから自動計算するため、ここでの計算は不要
+  extractedData = results;
+  renderExtractTable(results);
+}
+
+// ── 候補選択（ドロップダウン変更時）──────────────────────────
+function selectCandidate(key, value) {
+  const inp = $(`ext_${key}`);
+  if (inp) inp.value = Math.abs(parseInt(value));
+}
+
+// ── 抽出結果テーブル描画 ─────────────────────────────────────
+function renderExtractTable(results) {
+  const tbody  = $('extract-tbody');
+  const foundN = Object.values(results).filter(r => r.found).length;
+  $('found-summary').textContent = `${foundN} / ${EXTRACT_FIELDS.length} 項目検出`;
+  $('extract-result').style.display = 'block';
+  $('apply-btn').disabled = (foundN === 0);
+
+  tbody.innerHTML = EXTRACT_FIELDS.map(field => {
+    const r       = results[field.key];
+    const checked = r.found ? 'checked' : '';
+    const trClass = r.found ? '' : 'not-found';
+    const cnt     = r.candidates ? r.candidates.length : 0;
+    const isComp  = field.computed;
+    const badge   = isComp
+      ? `<span class="found-badge" style="background:#e0e7ff;color:#3730a3;">🔢 自動計算</span>`
+      : r.found
+        ? `<span class="found-badge ok">検出${cnt > 1 ? ` (${cnt}件)` : ''}</span>`
+        : `<span class="found-badge ng">未検出</span>`;
+    const targets = field.fieldNames.map(n =>
+      `<span class="targets">${n}</span>`).join('<br>');
+
+    // 複数候補 → ドロップダウン。単数 → 原文テキスト表示
+    let candHtml = '';
+    if (isComp && r.found) {
+      // 計算式を表示
+      const lv = extractedData['loan']  ? Math.abs(extractedData['loan'].value)  : 0;
+      const cv = extractedData['cash']  ? Math.abs(extractedData['cash'].value)  : 0;
+      const sign = r.value >= 0 ? '（有利子負債超過）' : '（ネットキャッシュ）';
+      candHtml = `<span style="font-size:11px;color:#3730a3;">
+        借入金 ${lv.toLocaleString()} − 現預金 ${cv.toLocaleString()} = <strong>${r.value.toLocaleString()}</strong> 万円 ${sign}
+      </span>`;
+    } else if (cnt > 1) {
+      const opts = r.candidates.map((c, i) => {
+        const label = `${Math.abs(c.value).toLocaleString()} 万円（原文: ${c.raw}）${c.recommended ? ' ★直近期' : ''}`;
+        return `<option value="${c.value}" ${i === 0 ? 'selected' : ''}>${label}</option>`;
+      }).join('');
+      candHtml = `<select class="cand-select"
+        onchange="selectCandidate('${field.key}', this.value)">${opts}</select>`;
+    } else if (r.found) {
+      candHtml = `<span style="font-size:10px;color:var(--text-muted);">原文: ${escHtml(r.raw)}</span>`;
+    }
+
+    return `<tr class="${trClass}">
+      <td>
+        <strong>${field.label}</strong>
+        ${field.note ? `<br><span style="font-size:10px;color:var(--text-muted);">${field.note}</span>` : ''}
+      </td>
+      <td>${badge}<br>${candHtml}</td>
+      <td>
+        <input class="val-input" type="number" id="ext_${field.key}"
+          value="${r.found || isComp ? r.value : ''}" placeholder="${(r.found || isComp) ? '' : '手入力（万円）'}">
+        <span style="font-size:10px;color:var(--text-muted);"> 万円</span>
+        ${isComp && r.value < 0 ? `<div style="font-size:10px;color:#059669;font-weight:700;">※マイナス＝ネットキャッシュ（EV加算）</div>` : ''}
+      </td>
+      <td>${targets}</td>
+      <td style="text-align:center;">
+        <input type="checkbox" id="chk_${field.key}" ${checked}
+          style="width:16px;height:16px;cursor:pointer;">
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── フィールドに適用 ──────────────────────────────────────────
+function applyExtractedData() {
+  let applied = 0;
+  for (const field of EXTRACT_FIELDS) {
+    const chk = $(`chk_${field.key}`);
+    if (!chk || !chk.checked) continue;
+    const value = parseFloat($(`ext_${field.key}`).value) || 0;
+    for (const inputId of field.inputIds) {
+      const el = $(inputId);
+      if (el) { el.value = value; applied++; }
+    }
+  }
+  // 再計算
+  calcMultiple();
+  calcNetAsset();
+  calcDCF();
+  closeUploadModal();
+  // 完了通知
+  const notice = document.createElement('div');
+  notice.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.2);';
+  notice.textContent   = `✅ ${applied} フィールドに決算数値を適用しました`;
+  document.body.appendChild(notice);
+  setTimeout(() => notice.remove(), 3500);
+}
+
+// ── ユーティリティ ────────────────────────────────────────────
+function showProgress(msg, pct) {
+  const wrap = $('progress-wrap');
+  const fill = $('progress-fill');
+  const pmsg = $('progress-msg');
+  wrap.style.display = 'block';
+  fill.style.width   = pct + '%';
+  pmsg.textContent   = msg;
+  if (pct >= 100 || pct === 0) setTimeout(() => { wrap.style.display = 'none'; }, 2000);
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
