@@ -387,6 +387,97 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
       font-size: 11px; background: #eff6ff; color: #1e40af; cursor: pointer;
     }
     .cand-select:focus { outline: none; border-color: var(--primary); }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* ── BS section headers ── */
+    .bs-section {
+      border-radius: 8px; margin: 14px 0 8px; padding: 6px 12px;
+      font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+    }
+    .bs-section.asset  { background: #eff6ff; color: #1e40af; border-left: 3px solid var(--primary); }
+    .bs-section.liab   { background: #fff1f2; color: #9f1239; border-left: 3px solid #e11d48; }
+    .bs-section.adjust { background: #f0fdf4; color: #065f46; border-left: 3px solid var(--accent); }
+    .linked-display {
+      background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 14px;
+    }
+    .linked-display .ld-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+    }
+    .linked-display .ld-item .ld-label {
+      font-size: 10px; color: #3b82f6; margin-bottom: 2px; font-weight:600;
+    }
+    .linked-display .ld-item .ld-val {
+      font-size: 17px; font-weight: 800; color: #1e3a8a;
+    }
+    .linked-display .ld-note {
+      font-size: 10px; color: #3b82f6; margin-top: 8px; opacity: .8;
+    }
+
+    /* ── Save/Load Modal ── */
+    .header-save-btn {
+      padding: 8px 16px;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.4);
+      color: #fff; border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 700; transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .header-save-btn:hover { background: rgba(255,255,255,.3); }
+
+    .save-tabs { display: flex; gap: 4px; margin-bottom: 18px; }
+    .save-tab-btn {
+      flex: 1; padding: 9px 8px; border: 1px solid var(--border);
+      background: var(--bg); border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 600; color: var(--text-muted); transition: all .2s;
+    }
+    .save-tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .save-panel { display: none; }
+    .save-panel.active { display: block; }
+
+    .save-name-row {
+      display: flex; gap: 8px; margin-bottom: 14px; align-items: center;
+    }
+    .save-name-row input {
+      flex: 1; padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; background: var(--bg);
+    }
+    .save-name-row input:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,86,219,.15);
+    }
+
+    .save-list { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; }
+    .save-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px; cursor: pointer;
+      transition: all .2s;
+    }
+    .save-item:hover { border-color: var(--primary); background: #eff6ff; }
+    .save-item .si-icon { font-size: 20px; }
+    .save-item .si-info { flex: 1; min-width: 0; }
+    .save-item .si-name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .save-item .si-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .save-item .si-preview { font-size: 11px; color: #1e40af; margin-top: 3px; }
+    .save-item .si-del {
+      background: #fee2e2; border: none; color: #991b1b;
+      border-radius: 6px; padding: 4px 8px; font-size: 11px;
+      font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: background .2s; flex-shrink: 0;
+    }
+    .save-item .si-del:hover { background: #fca5a5; }
+    .save-empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-muted); font-size: 13px;
+    }
+    .save-empty .se-icon { font-size: 40px; margin-bottom: 8px; }
+
+    .io-row { display: flex; gap: 10px; margin-top: 16px; }
+    .io-row .btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; }
   </style>
 </head>
 <body>
@@ -396,10 +487,96 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
     <h1>クリニック M&A 買収金額検討ツール</h1>
     <p>マルチプル法・純資産法・DCF法による企業価値評価</p>
   </div>
+  <button class="header-save-btn" onclick="openSaveModal()">
+    💾 保存・読込
+  </button>
   <button class="header-upload-btn" onclick="openUploadModal()">
     📄 決算書を読み込む
   </button>
 </header>
+
+<!-- ===== SAVE / LOAD MODAL ===== -->
+<div class="modal-overlay" id="save-modal">
+  <div class="modal" style="width:600px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#064e3b,#059669);">
+      <span style="font-size:22px;">💾</span>
+      <h2>データ保存・読込</h2>
+      <button class="modal-close" onclick="closeSaveModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="save-tabs">
+        <button class="save-tab-btn active" onclick="switchSaveTab('save')">💾 保存</button>
+        <button class="save-tab-btn" onclick="switchSaveTab('load')">📂 読込</button>
+        <button class="save-tab-btn" onclick="switchSaveTab('io')">↕️ エクスポート/インポート</button>
+      </div>
+
+      <!-- 保存パネル -->
+      <div class="save-panel active" id="sp-save">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+          現在の全入力値（マルチプル法・純資産法・DCF法・ウェイト）をブラウザに保存します。
+        </p>
+        <div class="save-name-row">
+          <input type="text" id="save-name-input" placeholder="保存名を入力（例：○○クリニック案件）" maxlength="50">
+          <button class="btn btn-primary" onclick="doSave()" style="white-space:nowrap;">💾 保存する</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);">
+          ※ ブラウザのローカルストレージに保存されます。最大20件まで保存できます。
+        </div>
+
+        <div style="margin-top:20px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;">現在の入力値プレビュー</div>
+          <div id="save-preview" style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;line-height:1.8;"></div>
+        </div>
+      </div>
+
+      <!-- 読込パネル -->
+      <div class="save-panel" id="sp-load">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <p style="font-size:12px;color:var(--text-muted);margin:0;">保存済みデータを選択して読み込みます。</p>
+          <span style="font-size:11px;color:var(--text-muted);" id="save-count-disp"></span>
+        </div>
+        <div class="save-list" id="save-list"></div>
+      </div>
+
+      <!-- エクスポート/インポートパネル -->
+      <div class="save-panel" id="sp-io">
+        <div style="margin-bottom:20px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:6px;">📤 JSONエクスポート</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+            現在の入力値をJSONファイルとしてダウンロードします。他のPCへの引き継ぎやバックアップに使用できます。
+          </p>
+          <div class="save-name-row">
+            <input type="text" id="export-name-input" placeholder="ファイル名（例：○○クリニック）" maxlength="50">
+            <button class="btn btn-primary" onclick="doExport()" style="white-space:nowrap;">📥 ダウンロード</button>
+          </div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:6px;">📥 JSONインポート</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+            エクスポートしたJSONファイルを読み込んで入力値を復元します。
+          </p>
+          <label style="display:flex;align-items:center;justify-content:center;gap:8px;
+            border:2px dashed #93c5fd;border-radius:10px;padding:20px;cursor:pointer;
+            background:#eff6ff;color:var(--primary);font-weight:700;font-size:13px;
+            transition:all .2s;" id="import-drop-zone"
+            ondragover="event.preventDefault();this.style.background='#dbeafe';"
+            ondragleave="this.style.background='#eff6ff';"
+            ondrop="onImportDrop(event)">
+            <span style="font-size:24px;">📂</span>
+            クリックまたはドラッグ＆ドロップでJSONを選択
+            <input type="file" id="import-file-input" accept=".json" onchange="onImportFile(event)" style="display:none;">
+          </label>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSaveModal()">閉じる</button>
+    </div>
+  </div>
+</div>
 
 <!-- ===== UPLOAD MODAL ===== -->
 <div class="modal-overlay" id="upload-modal">
@@ -577,7 +754,7 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
           <div class="field">
             <label>純有利子負債（自動計算）</label>
             <div style="background:#f0fdf4; border:1px solid #6ee7b7; border-radius:8px; padding:8px 12px; font-size:14px; font-weight:700; color:#065f46;" id="m_debt_auto_disp">— 万円</div>
-            <div class="hint">純資産法タブの「借入金 − 現預金」から自動計算（負値 = ネットキャッシュ）</div>
+            <div class="hint">純資産法タブの「(短期借入金＋長期借入金) − 現金・預金」から自動計算</div>
           </div>
 
           <div class="section-title">マルチプル設定</div>
@@ -669,80 +846,169 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
             クリニックでは <strong>医療機器・内装の時価評価</strong>、<strong>のれん（顧客基盤・ブランド）</strong> の加算が重要です。
           </div>
 
-          <div class="section-title">資産（簿価）</div>
+          <!-- ▼ 流動資産 -->
+          <div class="bs-section asset">🔵 流動資産</div>
           <div class="field-row">
             <div class="field">
-              <label>現預金（万円）</label>
+              <label>現金・預金（万円）</label>
               <div class="input-wrap has-suffix">
                 <input type="number" id="n_cash" value="2000" min="0" oninput="calcNetAsset()">
                 <span class="suffix">万円</span>
               </div>
+              <div class="hint">普通預金・定期預金等</div>
             </div>
             <div class="field">
-              <label>売掛金・未収金（万円）</label>
+              <label>診療報酬未収金（万円）</label>
               <div class="input-wrap has-suffix">
                 <input type="number" id="n_ar" value="800" min="0" oninput="calcNetAsset()">
                 <span class="suffix">万円</span>
               </div>
+              <div class="hint">社保・国保への請求未回収分</div>
             </div>
           </div>
           <div class="field-row">
             <div class="field">
-              <label>医療機器・設備（万円）</label>
+              <label>医薬品・材料在庫（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_inventory" value="100" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">棚卸資産（薬品・消耗品等）</div>
+            </div>
+            <div class="field">
+              <label>その他流動資産（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_other_current" value="100" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">前払費用・短期貸付金等</div>
+            </div>
+          </div>
+
+          <!-- ▼ 固定資産 -->
+          <div class="bs-section asset">🏥 固定資産</div>
+          <div class="field-row">
+            <div class="field">
+              <label>医療機器・器械備品（万円）</label>
               <div class="input-wrap has-suffix">
                 <input type="number" id="n_equipment" value="3000" min="0" oninput="calcNetAsset()">
                 <span class="suffix">万円</span>
               </div>
+              <div class="hint">簿価（時価修正は下記で調整）</div>
             </div>
             <div class="field">
-              <label>内装・リース資産（万円）</label>
+              <label>建物附属設備・内装工事（万円）</label>
               <div class="input-wrap has-suffix">
                 <input type="number" id="n_interior" value="1500" min="0" oninput="calcNetAsset()">
                 <span class="suffix">万円</span>
               </div>
+              <div class="hint">クリニック内装・診療室設備等</div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>リース資産（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_lease" value="500" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">ファイナンスリース・使用権資産</div>
+            </div>
+            <div class="field">
+              <label>差入保証金・敷金（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_deposit" value="300" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">テナント入居時の保証金（通常回収可）</div>
             </div>
           </div>
           <div class="field">
-            <label>その他資産（万円）</label>
+            <label>その他固定資産（万円）</label>
             <div class="input-wrap has-suffix">
-              <input type="number" id="n_other_asset" value="300" min="0" oninput="calcNetAsset()">
+              <input type="number" id="n_other_asset" value="100" min="0" oninput="calcNetAsset()">
               <span class="suffix">万円</span>
             </div>
+            <div class="hint">長期前払費用・繰延資産等</div>
           </div>
 
-          <div class="section-title">負債（簿価）</div>
+          <!-- ▼ 流動負債 -->
+          <div class="bs-section liab">🔴 流動負債</div>
           <div class="field-row">
             <div class="field">
-              <label>借入金（万円）</label>
+              <label>短期借入金（万円）</label>
               <div class="input-wrap has-suffix">
-                <input type="number" id="n_loan" value="2500" min="0" oninput="calcNetAsset()">
+                <input type="number" id="n_short_loan" value="500" min="0" oninput="calcNetAsset()">
                 <span class="suffix">万円</span>
               </div>
+              <div class="hint">1年以内返済予定の金融機関借入</div>
             </div>
             <div class="field">
-              <label>買掛金・未払金（万円）</label>
+              <label>未払金・買掛金（万円）</label>
               <div class="input-wrap has-suffix">
                 <input type="number" id="n_ap" value="400" min="0" oninput="calcNetAsset()">
                 <span class="suffix">万円</span>
               </div>
+              <div class="hint">医薬品仕入・外注費等の未払</div>
             </div>
           </div>
-          <div class="field">
-            <label>その他負債（万円）</label>
-            <div class="input-wrap has-suffix">
-              <input type="number" id="n_other_liab" value="200" min="0" oninput="calcNetAsset()">
-              <span class="suffix">万円</span>
+          <div class="field-row">
+            <div class="field">
+              <label>未払費用・未払給与（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_accrued" value="200" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">給与・社会保険料・未払税金等</div>
+            </div>
+            <div class="field">
+              <label>その他流動負債（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_other_current_liab" value="100" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">前受金・預り金等</div>
             </div>
           </div>
 
-          <div class="section-title">時価修正・のれん加算</div>
+          <!-- ▼ 固定負債 -->
+          <div class="bs-section liab">💳 固定負債</div>
+          <div class="field-row">
+            <div class="field">
+              <label>長期借入金（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_long_loan" value="2000" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">金融機関からの長期融資残高</div>
+            </div>
+            <div class="field">
+              <label>リース債務（万円）</label>
+              <div class="input-wrap has-suffix">
+                <input type="number" id="n_lease_liab" value="400" min="0" oninput="calcNetAsset()">
+                <span class="suffix">万円</span>
+              </div>
+              <div class="hint">ファイナンスリース・使用権負債</div>
+            </div>
+          </div>
           <div class="field">
-            <label>機器時価修正（万円）</label>
+            <label>その他固定負債（万円）</label>
+            <div class="input-wrap has-suffix">
+              <input type="number" id="n_other_liab" value="100" min="0" oninput="calcNetAsset()">
+              <span class="suffix">万円</span>
+            </div>
+            <div class="hint">長期未払金・退職給付引当金等</div>
+          </div>
+
+          <!-- ▼ 時価修正 -->
+          <div class="bs-section adjust">🔧 時価修正・のれん加算</div>
+          <div class="field">
+            <label>医療機器 時価修正（万円）</label>
             <div class="input-wrap has-suffix">
               <input type="number" id="n_equip_adj" value="-500" oninput="calcNetAsset()">
               <span class="suffix">万円</span>
             </div>
-            <div class="hint">時価 − 簿価（マイナスも可）</div>
+            <div class="hint">時価 − 簿価（古い機器はマイナス、最新機器はプラスも可）</div>
           </div>
 
           <div class="section-title">のれん算出（EBITDA基準）</div>
@@ -772,28 +1038,40 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
           </div>
         </div>
         <div class="card-body">
-          <div class="section-title">資産合計</div>
+          <div class="section-title" style="color:#1e40af;">🔵 資産の部</div>
           <div class="breakdown">
-            <div class="breakdown-row"><span>現預金</span><span class="val" id="n_cash_disp">—</span></div>
-            <div class="breakdown-row"><span>売掛金・未収金</span><span class="val" id="n_ar_disp">—</span></div>
-            <div class="breakdown-row"><span>医療機器・設備</span><span class="val" id="n_equip_disp">—</span></div>
-            <div class="breakdown-row"><span>内装・リース資産</span><span class="val" id="n_interior_disp">—</span></div>
-            <div class="breakdown-row"><span>その他資産</span><span class="val" id="n_other_asset_disp">—</span></div>
+            <div class="breakdown-row" style="font-size:11px;color:var(--text-muted);font-weight:700;"><span>【流動資産】</span></div>
+            <div class="breakdown-row"><span>　現金・預金</span><span class="val" id="n_cash_disp">—</span></div>
+            <div class="breakdown-row"><span>　診療報酬未収金</span><span class="val" id="n_ar_disp">—</span></div>
+            <div class="breakdown-row"><span>　医薬品・材料在庫</span><span class="val" id="n_inventory_disp">—</span></div>
+            <div class="breakdown-row"><span>　その他流動資産</span><span class="val" id="n_other_current_disp">—</span></div>
+            <div class="breakdown-row" style="font-size:11px;color:var(--text-muted);font-weight:700;margin-top:4px;"><span>【固定資産】</span></div>
+            <div class="breakdown-row"><span>　医療機器・器械備品</span><span class="val" id="n_equip_disp">—</span></div>
+            <div class="breakdown-row"><span>　建物附属設備・内装</span><span class="val" id="n_interior_disp">—</span></div>
+            <div class="breakdown-row"><span>　リース資産</span><span class="val" id="n_lease_disp">—</span></div>
+            <div class="breakdown-row"><span>　差入保証金・敷金</span><span class="val" id="n_deposit_disp">—</span></div>
+            <div class="breakdown-row"><span>　その他固定資産</span><span class="val" id="n_other_asset_disp">—</span></div>
             <div class="breakdown-row total"><span>資産合計（簿価）</span><span class="val pos" id="n_total_asset_disp">—</span></div>
           </div>
 
-          <div class="section-title" style="margin-top:14px;">負債合計</div>
+          <div class="section-title" style="margin-top:14px;color:#9f1239;">🔴 負債の部</div>
           <div class="breakdown">
-            <div class="breakdown-row"><span>借入金</span><span class="val neg" id="n_loan_disp">—</span></div>
-            <div class="breakdown-row"><span>買掛金・未払金</span><span class="val neg" id="n_ap_disp">—</span></div>
-            <div class="breakdown-row"><span>その他負債</span><span class="val neg" id="n_other_liab_disp">—</span></div>
+            <div class="breakdown-row" style="font-size:11px;color:var(--text-muted);font-weight:700;"><span>【流動負債】</span></div>
+            <div class="breakdown-row"><span>　短期借入金</span><span class="val neg" id="n_short_loan_disp">—</span></div>
+            <div class="breakdown-row"><span>　未払金・買掛金</span><span class="val neg" id="n_ap_disp">—</span></div>
+            <div class="breakdown-row"><span>　未払費用・未払給与</span><span class="val neg" id="n_accrued_disp">—</span></div>
+            <div class="breakdown-row"><span>　その他流動負債</span><span class="val neg" id="n_other_current_liab_disp">—</span></div>
+            <div class="breakdown-row" style="font-size:11px;color:var(--text-muted);font-weight:700;margin-top:4px;"><span>【固定負債】</span></div>
+            <div class="breakdown-row"><span>　長期借入金</span><span class="val neg" id="n_long_loan_disp">—</span></div>
+            <div class="breakdown-row"><span>　リース債務</span><span class="val neg" id="n_lease_liab_disp">—</span></div>
+            <div class="breakdown-row"><span>　その他固定負債</span><span class="val neg" id="n_other_liab_disp">—</span></div>
             <div class="breakdown-row total"><span>負債合計</span><span class="val neg" id="n_total_liab_disp">—</span></div>
           </div>
 
-          <div class="section-title" style="margin-top:14px;">評価調整</div>
+          <div class="section-title" style="margin-top:14px;color:#065f46;">🔧 評価調整</div>
           <div class="breakdown">
             <div class="breakdown-row"><span>簿価純資産</span><span class="val" id="n_book_net_disp">—</span></div>
-            <div class="breakdown-row"><span>時価修正（機器）</span><span class="val" id="n_equip_adj_disp">—</span></div>
+            <div class="breakdown-row"><span>時価修正（医療機器）</span><span class="val" id="n_equip_adj_disp">—</span></div>
             <div class="breakdown-row"><span>のれん・ブランド価値</span><span class="val pos" id="n_goodwill_disp">—</span></div>
             <div class="breakdown-row total"><span>修正純資産（株式価値）</span><span class="val" id="n_total_disp">—</span></div>
           </div>
@@ -821,26 +1099,28 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
         </div>
         <div class="card-body">
           <div class="info-callout">
-            決算書の実績数値を入力してベースFCFを算出します。FCF = <strong>営業利益×(1−税率) + 減価償却費 − 設備投資 − 運転資本増加額</strong>
+            FCF = <strong>営業利益×(1−税率) + 減価償却費 − 設備投資 − 運転資本増加額</strong>。売上・営業利益・減価償却はマルチプル法の入力値を自動参照します。
           </div>
 
-          <div class="section-title">📄 損益計算書（P/L）</div>
-          <div class="field-row">
-            <div class="field">
-              <label>売上高（万円）</label>
-              <div class="input-wrap has-suffix">
-                <input type="number" id="d_revenue" value="15000" min="0" oninput="calcDCF()">
-                <span class="suffix">万円</span>
+          <div class="section-title">📄 損益計算書（P/L）<span class="tag tag-blue" style="margin-left:8px;font-size:10px;">マルチプル法より自動連動</span></div>
+          <div class="linked-display">
+            <div class="ld-grid">
+              <div class="ld-item">
+                <div class="ld-label">売上高</div>
+                <div class="ld-val" id="d_revenue_linked">— 万円</div>
+              </div>
+              <div class="ld-item">
+                <div class="ld-label">営業利益</div>
+                <div class="ld-val" id="d_ebit_linked">— 万円</div>
+              </div>
+              <div class="ld-item">
+                <div class="ld-label">減価償却費</div>
+                <div class="ld-val" id="d_da_linked">— 万円</div>
               </div>
             </div>
-            <div class="field">
-              <label>営業利益（万円）</label>
-              <div class="input-wrap has-suffix">
-                <input type="number" id="d_ebit" value="3000" min="0" oninput="calcDCF()">
-                <span class="suffix">万円</span>
-              </div>
-            </div>
+            <div class="ld-note">※ マルチプル法タブの入力値を使用。変更はマルチプル法タブで行ってください。</div>
           </div>
+
           <div class="field">
             <label>実効税率 — <span id="d_tax_val">30.0</span>%</label>
             <input type="range" id="d_tax" min="15" max="40" step="0.5" value="30" oninput="updateSlider('d_tax','d_tax_val'); calcDCF()">
@@ -849,14 +1129,6 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
 
           <div class="section-title">📄 キャッシュフロー計算書（C/F）</div>
           <div class="field-row">
-            <div class="field">
-              <label>減価償却費（万円）</label>
-              <div class="input-wrap has-suffix">
-                <input type="number" id="d_da" value="500" min="0" oninput="calcDCF()">
-                <span class="suffix">万円</span>
-              </div>
-              <div class="hint">加算：非現金費用</div>
-            </div>
             <div class="field">
               <label>設備投資 Capex（万円）</label>
               <div class="input-wrap has-suffix">
@@ -876,20 +1148,50 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
           </div>
 
           <div class="section-title">📈 将来予測・割引率設定</div>
+
+          <!-- ── クリニック向け設定ガイド ── -->
+          <div style="background:#fefce8; border:1px solid #fcd34d; border-radius:10px; padding:14px 16px; margin-bottom:14px; font-size:12px;">
+            <div style="font-weight:700; color:#92400e; margin-bottom:8px;">💡 クリニックM&A — 各パラメータの設定目安</div>
+            <div style="display:grid; grid-template-columns:1fr; gap:6px; color:#78350f; line-height:1.7;">
+              <div>
+                <strong>📈 FCF成長率：</strong>
+                単科クリニック（患者固定）は <strong>−2〜0%</strong> が保守的。
+                美容・自由診療など成長余地あり <strong>+2〜5%</strong>。
+                医師高齢化・競合増加リスクがある場合はマイナスも検討。
+              </div>
+              <div>
+                <strong>📉 WACC（割引率）：</strong>
+                中規模クリニック <strong>10〜12%</strong> が標準。
+                単独医師・開業年数短い・競合激しい場合 <strong>13〜15%</strong>。
+                大規模・医療法人・複数診療科 <strong>8〜10%</strong>。
+                （無リスク金利1〜2% ＋ リスクプレミアム8〜13%）
+              </div>
+              <div>
+                <strong>🏁 ターミナル成長率：</strong>
+                通常 <strong>0〜1%</strong>（長期GDP成長率以下）。
+                クリニックは人口動態・保険制度変化リスクを考慮し <strong>0%</strong> が保守的。
+                WACCとの差（WACC−ターミナル成長率）が小さすぎると評価額が過大になるため注意。
+              </div>
+            </div>
+          </div>
+
           <div class="field">
             <label>FCF成長率（年率） — <span id="d_growth_val">3.0</span>%</label>
             <input type="range" id="d_growth" min="-5" max="15" step="0.5" value="3" oninput="updateSlider('d_growth','d_growth_val'); calcDCF()">
-            <div class="slider-labels"><span>−5%（縮小）</span><span>3%（横ばい）</span><span>15%（高成長）</span></div>
+            <div class="slider-labels"><span>−5%（患者減少）</span><span>0%（横ばい）</span><span>+5%（成長）</span><span>15%（高成長）</span></div>
+            <div class="hint" style="margin-top:4px;">推奨：保守 −2〜0% ／ 標準 0〜3% ／ 成長 3〜5%</div>
           </div>
           <div class="field">
             <label>割引率（WACC） — <span id="d_wacc_val">10.0</span>%</label>
             <input type="range" id="d_wacc" min="6" max="20" step="0.5" value="10" oninput="updateSlider('d_wacc','d_wacc_val'); calcDCF()">
-            <div class="slider-labels"><span>6%（低リスク）</span><span>10%（標準）</span><span>20%（高リスク）</span></div>
+            <div class="slider-labels"><span>6%</span><span>10%（標準）</span><span>15%（高リスク）</span><span>20%</span></div>
+            <div class="hint" style="margin-top:4px;">推奨：標準 10〜12% ／ 単独医師・高リスク 13〜15%</div>
           </div>
           <div class="field">
             <label>ターミナル成長率 — <span id="d_terminal_val">1.0</span>%</label>
             <input type="range" id="d_terminal" min="0" max="3" step="0.1" value="1.0" oninput="updateSlider('d_terminal','d_terminal_val'); calcDCF()">
-            <div class="slider-labels"><span>0%</span><span>1%（標準）</span><span>3%（楽観）</span></div>
+            <div class="slider-labels"><span>0%（保守的）</span><span>1%（標準）</span><span>3%（楽観）</span></div>
+            <div class="hint" style="margin-top:4px;">推奨：保守 0% ／ 標準 0.5〜1%。WACCとの差が2%以上確保を</div>
           </div>
 
           <div class="section-title">📄 貸借対照表（B/S）</div>
@@ -897,7 +1199,7 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
             <div class="field">
               <label>純有利子負債（自動計算）</label>
               <div style="background:#f0fdf4; border:1px solid #6ee7b7; border-radius:8px; padding:8px 12px; font-size:14px; font-weight:700; color:#065f46;" id="d_debt_auto_disp">— 万円</div>
-              <div class="hint">純資産法タブの「借入金 − 現預金」から自動計算（負値 = ネットキャッシュ）</div>
+              <div class="hint">純資産法タブの「(短期借入金＋長期借入金) − 現金・預金」から自動計算</div>
             </div>
             <div class="field">
               <label>予測年数</label>
@@ -985,6 +1287,32 @@ nippou-tool / ma評価ツール / ../ma-tool/index.html
         </div>
       </div>
       <div class="card-body">
+
+        <!-- ── 財務指標サマリー ── -->
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px;">
+          <div style="background:#eff6ff; border-radius:10px; padding:12px 14px; border-left:3px solid var(--primary);">
+            <div style="font-size:10px; font-weight:700; color:#3b82f6; margin-bottom:4px;">💹 調整EBITDA</div>
+            <div style="font-size:20px; font-weight:800; color:#1e3a8a;" id="sum_ebitda_disp">— 万円</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:2px;" id="sum_ebitda_margin">EBITDA率 —%</div>
+          </div>
+          <div style="background:#fff7ed; border-radius:10px; padding:12px 14px; border-left:3px solid #ea580c;">
+            <div style="font-size:10px; font-weight:700; color:#ea580c; margin-bottom:4px;">💰 売上高</div>
+            <div style="font-size:20px; font-weight:800; color:#7c2d12;" id="sum_revenue_disp">— 万円</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">年間売上（P/L）</div>
+          </div>
+          <div style="background:#f0fdf4; border-radius:10px; padding:12px 14px; border-left:3px solid var(--accent);" id="sum_netdebt_card">
+            <div style="font-size:10px; font-weight:700; color:var(--accent); margin-bottom:4px;" id="sum_netdebt_label">🏦 純有利子負債</div>
+            <div style="font-size:20px; font-weight:800; color:#065f46;" id="sum_netdebt_disp">— 万円</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:2px;" id="sum_netdebt_sub">借入金 − 現預金</div>
+          </div>
+          <div style="background:#fdf4ff; border-radius:10px; padding:12px 14px; border-left:3px solid #a855f7;">
+            <div style="font-size:10px; font-weight:700; color:#a855f7; margin-bottom:4px;">📊 EV/EBITDA（参考）</div>
+            <div style="font-size:20px; font-weight:800; color:#581c87;" id="sum_ev_ebitda_disp">— 倍</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">加重平均EV ÷ EBITDA</div>
+          </div>
+        </div>
+
+        <!-- ── 3手法比較 ── -->
         <div class="summary-grid">
           <div class="summary-item" id="sum_multiple">
             <div class="method">📊 マルチプル法</div>
@@ -1090,8 +1418,8 @@ function calcMultiple() {
   const da          = val('m_da');
   const execCurrent = val('m_exec_current');
   const execNew     = val('m_exec_new');
-  // 純有利子負債 = 借入金 − 現預金（純資産法タブから自動取得）
-  const debt        = val('n_loan') - val('n_cash');
+  // 純有利子負債 = (短期借入金 + 長期借入金) − 現預金（純資産法タブから自動取得）
+  const debt        = (val('n_short_loan') + val('n_long_loan')) - val('n_cash');
   const ebitdaMult  = val('m_ebitda_mult');
   const revMult     = val('m_rev_mult');
 
@@ -1134,18 +1462,32 @@ function calcMultiple() {
 
   // 純資産法ののれんを再計算（EBITDA連動）
   calcNetAsset();
+
+  // 総合評価タブが開いているときはリアルタイム更新
+  if ($('tab-summary').classList.contains('active')) updateSummary();
 }
 
 // ─── Net Asset Method ────────────────────────────────────────
 function calcNetAsset() {
-  const cash      = val('n_cash');
-  const ar        = val('n_ar');
-  const equipment = val('n_equipment');
-  const interior  = val('n_interior');
-  const otherA    = val('n_other_asset');
-  const loan      = val('n_loan');
-  const ap        = val('n_ap');
-  const otherL    = val('n_other_liab');
+  // ── 資産 ──
+  const cash         = val('n_cash');
+  const ar           = val('n_ar');
+  const inventory    = val('n_inventory');
+  const otherCurrent = val('n_other_current');
+  const equipment    = val('n_equipment');
+  const interior     = val('n_interior');
+  const lease        = val('n_lease');
+  const deposit      = val('n_deposit');
+  const otherFixed   = val('n_other_asset');
+  // ── 負債 ──
+  const shortLoan    = val('n_short_loan');
+  const ap           = val('n_ap');
+  const accrued      = val('n_accrued');
+  const otherCurLiab = val('n_other_current_liab');
+  const longLoan     = val('n_long_loan');
+  const leaseLiab    = val('n_lease_liab');
+  const otherFixLiab = val('n_other_liab');
+  // ── 調整 ──
   const equipAdj  = val('n_equip_adj');
   const gwMult    = val('n_gw_mult');
 
@@ -1153,8 +1495,10 @@ function calcNetAsset() {
   const adjEbitda = state.multiple.adjustedEbitda || 0;
   const goodwill  = adjEbitda * gwMult;
 
-  const totalAsset = cash + ar + equipment + interior + otherA;
-  const totalLiab  = loan + ap + otherL;
+  const totalAsset = cash + ar + inventory + otherCurrent
+                   + equipment + interior + lease + deposit + otherFixed;
+  const totalLiab  = shortLoan + ap + accrued + otherCurLiab
+                   + longLoan + leaseLiab + otherFixLiab;
   const bookNet    = totalAsset - totalLiab;
   const adjNet     = bookNet + equipAdj + goodwill;
 
@@ -1163,19 +1507,30 @@ function calcNetAsset() {
   $('n_gw_mult_disp2').textContent   = gwMult.toFixed(1);
   $('n_goodwill_calc').textContent   = fmt(goodwill);
 
-  // 結果パネル
-  $('n_cash_disp').textContent        = fmt(cash);
-  $('n_ar_disp').textContent          = fmt(ar);
-  $('n_equip_disp').textContent       = fmt(equipment);
-  $('n_interior_disp').textContent    = fmt(interior);
-  $('n_other_asset_disp').textContent = fmt(otherA);
-  $('n_total_asset_disp').textContent = fmt(totalAsset);
+  // 結果パネル ── 資産
+  $('n_cash_disp').textContent            = fmt(cash);
+  $('n_ar_disp').textContent              = fmt(ar);
+  $('n_inventory_disp').textContent       = fmt(inventory);
+  $('n_other_current_disp').textContent   = fmt(otherCurrent);
+  $('n_equip_disp').textContent           = fmt(equipment);
+  $('n_interior_disp').textContent        = fmt(interior);
+  $('n_lease_disp').textContent           = fmt(lease);
+  $('n_deposit_disp').textContent         = fmt(deposit);
+  $('n_other_asset_disp').textContent     = fmt(otherFixed);
+  $('n_total_asset_disp').textContent     = fmt(totalAsset);
 
-  $('n_loan_disp').textContent        = '▲ ' + fmtNum(loan) + ' 万円';
-  $('n_ap_disp').textContent          = '▲ ' + fmtNum(ap) + ' 万円';
-  $('n_other_liab_disp').textContent  = '▲ ' + fmtNum(otherL) + ' 万円';
-  $('n_total_liab_disp').textContent  = '▲ ' + fmtNum(totalLiab) + ' 万円';
+  // 結果パネル ── 負債
+  const neg = v => '▲ ' + fmtNum(v) + ' 万円';
+  $('n_short_loan_disp').textContent      = neg(shortLoan);
+  $('n_ap_disp').textContent              = neg(ap);
+  $('n_accrued_disp').textContent         = neg(accrued);
+  $('n_other_current_liab_disp').textContent = neg(otherCurLiab);
+  $('n_long_loan_disp').textContent       = neg(longLoan);
+  $('n_lease_liab_disp').textContent      = neg(leaseLiab);
+  $('n_other_liab_disp').textContent      = neg(otherFixLiab);
+  $('n_total_liab_disp').textContent      = '▲ ' + fmtNum(totalLiab) + ' 万円';
 
+  // 結果パネル ── 評価調整
   $('n_book_net_disp').textContent    = fmt(bookNet);
   $('n_equip_adj_disp').textContent   = (equipAdj >= 0 ? '+' : '') + fmtNum(equipAdj) + ' 万円';
   $('n_goodwill_disp').textContent    = `+${fmtNum(Math.round(goodwill))} 万円（${gwMult.toFixed(1)}× EBITDA ${fmtNum(Math.round(adjEbitda))}万円）`;
@@ -1197,18 +1552,24 @@ function calcNetAsset() {
 
 // ─── DCF Method ──────────────────────────────────────────────
 function calcDCF() {
-  const revenue = val('d_revenue');
-  const ebit    = val('d_ebit');
+  // ★ 売上・営業利益・減価償却はマルチプル法タブと連動
+  const revenue = val('m_revenue');
+  const ebit    = val('m_ebit');
+  const da      = val('m_da');
   const taxRate = val('d_tax') / 100;
-  const da      = val('d_da');
   const capex   = val('d_capex');
   const wc      = val('d_wc');
   const growth  = val('d_growth') / 100;
   const wacc    = val('d_wacc') / 100;
   const gTerm   = val('d_terminal') / 100;
-  // 純有利子負債 = 借入金 − 現預金（純資産法タブから自動取得）
-  const debt    = val('n_loan') - val('n_cash');
+  // 純有利子負債 = (短期借入金 + 長期借入金) − 現預金（純資産法タブから自動取得）
+  const debt    = (val('n_short_loan') + val('n_long_loan')) - val('n_cash');
   const years   = parseInt($('d_years').value);
+
+  // マルチプル法連動値の表示更新
+  if ($('d_revenue_linked')) $('d_revenue_linked').textContent = fmt(revenue);
+  if ($('d_ebit_linked'))    $('d_ebit_linked').textContent    = fmt(ebit);
+  if ($('d_da_linked'))      $('d_da_linked').textContent      = fmt(da);
 
   // DCF法タブの純有利子負債自動表示更新
   const debtLabelD = debt < 0
@@ -1273,6 +1634,9 @@ function calcDCF() {
   $('d_tv_ratio').textContent    = ev > 0 ? `TV比率: ${Math.round(pvTV/ev*100)}%　ベースFCF: ${fmtNum(Math.round(baseFCF))} 万円` : '';
 
   state.dcf = { value: equity };
+
+  // 総合評価タブが開いているときはリアルタイム更新
+  if ($('tab-summary').classList.contains('active')) updateSummary();
 }
 
 function buildRow(label, values, isRatio) {
@@ -1299,6 +1663,40 @@ function updateSummary() {
   $('sum_weighted').textContent = fmt(weighted);
   $('sum_range').textContent = `${fmtNum(Math.round(weighted * 0.85))} 〜 ${fmtNum(Math.round(weighted * 1.15))} 万円`;
 
+  // ── 財務指標サマリー更新 ──────────────────────────────────
+  const ebitda  = state.multiple.adjustedEbitda || 0;
+  const revenue = val('m_revenue');
+  const netDebt = (val('n_short_loan') + val('n_long_loan')) - val('n_cash');
+
+  // 調整EBITDA
+  $('sum_ebitda_disp').textContent  = fmt(ebitda);
+  const margin = revenue > 0 ? Math.round(ebitda / revenue * 100) : 0;
+  $('sum_ebitda_margin').textContent = `EBITDA率 ${margin}%（売上 ${fmtNum(revenue)}万円）`;
+
+  // 売上高
+  $('sum_revenue_disp').textContent = fmt(revenue);
+
+  // 純有利子負債 / ネットキャッシュ
+  const isNetCash = netDebt < 0;
+  $('sum_netdebt_label').textContent = isNetCash ? '💰 ネットキャッシュ' : '🏦 純有利子負債';
+  $('sum_netdebt_disp').textContent  = isNetCash
+    ? `+${fmtNum(Math.abs(Math.round(netDebt)))} 万円`
+    : fmt(netDebt);
+  $('sum_netdebt_sub').textContent   = isNetCash
+    ? '現預金 > 借入金（財務良好）'
+    : `借入金 ${fmtNum(val('n_short_loan')+val('n_long_loan'))}万 − 現預金 ${fmtNum(val('n_cash'))}万`;
+  $('sum_netdebt_card').style.background = isNetCash ? '#ecfdf5' : '#fef2f2';
+  $('sum_netdebt_card').style.borderLeftColor = isNetCash ? '#10b981' : '#ef4444';
+  $('sum_netdebt_label').style.color  = isNetCash ? '#059669' : '#dc2626';
+  $('sum_netdebt_disp').style.color   = isNetCash ? '#065f46' : '#7f1d1d';
+
+  // EV/EBITDA参考倍率（加重平均EV ÷ 調整EBITDA）
+  // EV = 株式価値 + 純有利子負債
+  const avgEquity = weighted;
+  const avgEV     = avgEquity + netDebt;
+  const evEbitda  = (ebitda > 0 && avgEV > 0) ? (avgEV / ebitda).toFixed(1) : '—';
+  $('sum_ev_ebitda_disp').textContent = ebitda > 0 ? `${evEbitda} 倍` : '— 倍';
+
   // Bar chart
   const vals = [m, n, d];
   const labels = ['マルチプル法', '純資産法', 'DCF法'];
@@ -1321,13 +1719,17 @@ function updateSummary() {
   const min = Math.min(m, n, d);
   const spread = max - min;
   const spreadPct = max > 0 ? Math.round((spread / max) * 100) : 0;
-  let comment = '';
+  const ebitdaStr = ebitda > 0 ? `調整EBITDA ${fmtNum(Math.round(ebitda))}万円（${margin}%）、` : '';
+  const netDebtStr = isNetCash
+    ? `ネットキャッシュ ${fmtNum(Math.abs(Math.round(netDebt)))}万円（財務良好）。`
+    : `純有利子負債 ${fmtNum(Math.round(netDebt))}万円（EV/EBITDA ${evEbitda}倍）。`;
+  let comment = `${ebitdaStr}${netDebtStr} `;
   if (spreadPct < 20) {
-    comment = `3手法の評価額が比較的収束しており（乖離率 ${spreadPct}%）、加重平均 ${fmtNum(Math.round(weighted))} 万円前後を基準に交渉を進めることを推奨します。各手法の数値に大きな矛盾がなく、信頼性の高い評価結果といえます。`;
+    comment += `3手法の評価額が収束しており（乖離率 ${spreadPct}%）、加重平均 ${fmtNum(Math.round(weighted))} 万円前後を交渉基準とすることを推奨します。`;
   } else if (spreadPct < 50) {
-    comment = `3手法間に ${spreadPct}% の乖離があります。マルチプル法を市場参照として重視しつつ、DCF法で将来性を加味する加重平均アプローチが有効です。交渉では${fmtNum(Math.round(weighted*0.9))}〜${fmtNum(Math.round(weighted*1.1))} 万円のレンジを念頭に置いてください。`;
+    comment += `3手法間に ${spreadPct}% の乖離があります。マルチプル法を市場参照として重視しつつ、DCF法で将来性を加味する加重平均アプローチが有効です。交渉レンジ ${fmtNum(Math.round(weighted*0.9))}〜${fmtNum(Math.round(weighted*1.1))} 万円を目安にしてください。`;
   } else {
-    comment = `3手法間の乖離が大きく（${spreadPct}%）、評価前提条件を再確認することを推奨します。純資産が低い場合はのれん・患者基盤の評価を見直し、DCFが大きく乖離する場合は成長率・割引率の妥当性を再検討してください。`;
+    comment += `3手法間の乖離が大きく（${spreadPct}%）、評価前提の再確認を推奨します。純資産が低い場合はのれん倍率を見直し、DCFが大きく乖離する場合はWACC・成長率の妥当性を再検討してください。`;
   }
   $('sum_recommendation').textContent = comment;
 }
@@ -1466,13 +1868,18 @@ const EXTRACT_FIELDS = [
     ],
   },
   {
-    key: 'loan', label: '有利子負債（借入金）', inputIds: ['n_loan'],
-    fieldNames: ['純資産法：借入金'],
-    note: '金融機関借入 ＋ 役員借入の合計',
+    key: 'shortLoan', label: '短期借入金', inputIds: ['n_short_loan'],
+    fieldNames: ['純資産法：短期借入金'],
+    note: '1年以内返済予定の金融機関借入',
+    patterns: ['短期借入金', '1年内返済長期借入金', '1年以内返済長期借入金'],
+  },
+  {
+    key: 'loan', label: '長期借入金（または借入金合計）', inputIds: ['n_long_loan'],
+    fieldNames: ['純資産法：長期借入金'],
+    note: '長期融資残高。有利子負債合計・借入金合計もここに設定',
     patterns: [
       '有利子負債合計', '借入金合計', '長短借入金合計',
-      '長期借入金', '短期借入金',
-      '金融機関借入金', '借入金',
+      '長期借入金', '金融機関借入金', '借入金',
     ],
   },
   {
@@ -1797,6 +2204,302 @@ function showProgress(msg, pct) {
 
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 💾 保存・読込機能
+// ══════════════════════════════════════════════════════════════
+
+const SAVE_STORAGE_KEY = 'ma_valuation_saves';
+const SAVE_MAX = 20;
+
+// 保存対象フィールド定義
+const SAVE_FIELDS = [
+  // マルチプル法（d_revenue/d_ebit/d_daはマルチプル法と連動のため不要）
+  'm_revenue','m_ebit','m_da','m_exec_current','m_exec_new',
+  'm_ebitda_mult','m_rev_mult',
+  // 純資産法 ── 流動資産
+  'n_cash','n_ar','n_inventory','n_other_current',
+  // 純資産法 ── 固定資産
+  'n_equipment','n_interior','n_lease','n_deposit','n_other_asset',
+  // 純資産法 ── 流動負債
+  'n_short_loan','n_ap','n_accrued','n_other_current_liab',
+  // 純資産法 ── 固定負債
+  'n_long_loan','n_lease_liab','n_other_liab',
+  // 純資産法 ── 調整・のれん
+  'n_equip_adj','n_gw_mult',
+  // DCF法（売上・営業利益・減価償却はm_*から自動連動）
+  'd_tax','d_capex','d_wc','d_growth','d_wacc','d_terminal','d_years',
+  // 総合評価ウェイト
+  'w_m','w_n','w_d',
+];
+
+// ── モーダル制御 ──────────────────────────────────────────────
+function openSaveModal() {
+  updateSavePreview();
+  renderSaveList();
+  $('save-modal').classList.add('open');
+}
+function closeSaveModal() {
+  $('save-modal').classList.remove('open');
+}
+function switchSaveTab(tab) {
+  const tabs = ['save','load','io'];
+  document.querySelectorAll('.save-tab-btn').forEach((b, i) =>
+    b.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.save-panel').forEach((p, i) =>
+    p.classList.toggle('active', tabs[i] === tab));
+  if (tab === 'load') renderSaveList();
+  if (tab === 'save') updateSavePreview();
+}
+
+// ── 現在値を収集 ──────────────────────────────────────────────
+function collectCurrentValues() {
+  const data = {};
+  for (const id of SAVE_FIELDS) {
+    const el = $(id);
+    if (el) data[id] = el.value;
+  }
+  return data;
+}
+
+// ── 値をフォームに適用 ────────────────────────────────────────
+function applyValues(data) {
+  for (const id of SAVE_FIELDS) {
+    const el = $(id);
+    if (el && data[id] !== undefined) el.value = data[id];
+  }
+  // スライダーラベル更新
+  const sliders = [
+    ['m_ebitda_mult','m_ebitda_mult_val'],
+    ['m_rev_mult','m_rev_mult_val'],
+    ['n_gw_mult','n_gw_mult_val'],
+    ['d_tax','d_tax_val'],
+    ['d_growth','d_growth_val'],
+    ['d_wacc','d_wacc_val'],
+    ['d_terminal','d_terminal_val'],
+    ['w_m','w_m_val'],['w_n','w_n_val'],['w_d','w_d_val'],
+  ];
+  sliders.forEach(([sid, lid]) => { if ($(sid) && $(lid)) updateSlider(sid, lid); });
+  // 再計算
+  _recalcInProgress = true;
+  calcMultiple();
+  calcNetAsset();
+  calcDCF();
+  _recalcInProgress = false;
+}
+
+// ── 保存プレビュー更新 ────────────────────────────────────────
+function updateSavePreview() {
+  const ebitda = val('m_ebitda_disp') !== undefined
+    ? (val('m_ebit') + val('m_da') + val('m_exec_current') - val('m_exec_new'))
+    : 0;
+  const revenue = val('m_revenue');
+  const netAsset = state.netasset.value;
+  const dcfVal   = state.dcf.value;
+  $('save-preview').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div style="background:#eff6ff;border-radius:6px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);">売上高</div>
+        <div style="font-weight:700;color:var(--primary);">${fmtNum(revenue)} 万円</div>
+      </div>
+      <div style="background:#ecfdf5;border-radius:6px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);">調整EBITDA</div>
+        <div style="font-weight:700;color:#065f46;">${fmtNum(Math.round(ebitda))} 万円</div>
+      </div>
+      <div style="background:#fffbeb;border-radius:6px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);">マルチプル中央値</div>
+        <div style="font-weight:700;color:#92400e;">${fmtNum(Math.round((state.multiple.ebitda + state.multiple.rev)/2))} 万円</div>
+      </div>
+      <div style="background:#ecfdf5;border-radius:6px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);">純資産法</div>
+        <div style="font-weight:700;color:#065f46;">${fmtNum(Math.round(netAsset))} 万円</div>
+      </div>
+      <div style="background:#fffbeb;border-radius:6px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);">DCF法</div>
+        <div style="font-weight:700;color:#92400e;">${fmtNum(Math.round(dcfVal))} 万円</div>
+      </div>
+      <div style="background:#dbeafe;border-radius:6px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--primary);">借入金 − 現預金</div>
+        <div style="font-weight:700;color:var(--primary-dark);">${fmtNum(val('n_loan') - val('n_cash'))} 万円</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── localStorage 操作 ─────────────────────────────────────────
+function loadSaves() {
+  try { return JSON.parse(localStorage.getItem(SAVE_STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+function storeSaves(list) {
+  localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(list));
+}
+
+// ── 保存実行 ──────────────────────────────────────────────────
+function doSave() {
+  const nameInput = $('save-name-input');
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.focus(); nameInput.style.borderColor='#ef4444'; return; }
+  nameInput.style.borderColor = '';
+
+  const saves = loadSaves();
+  if (saves.length >= SAVE_MAX) {
+    alert(`保存できるのは最大${SAVE_MAX}件までです。\n不要なデータを削除してください。`); return;
+  }
+
+  const entry = {
+    id:      Date.now(),
+    name,
+    savedAt: new Date().toLocaleString('ja-JP'),
+    data:    collectCurrentValues(),
+    summary: {
+      revenue:   val('m_revenue'),
+      ebitda:    Math.round(val('m_ebit') + val('m_da') + val('m_exec_current') - val('m_exec_new')),
+      multiple:  Math.round((state.multiple.ebitda + state.multiple.rev) / 2),
+      netasset:  Math.round(state.netasset.value),
+      dcf:       Math.round(state.dcf.value),
+    },
+  };
+
+  saves.unshift(entry); // 最新を先頭に
+  storeSaves(saves);
+  nameInput.value = '';
+
+  showToast(`💾 「${name}」を保存しました`);
+  renderSaveList();
+  switchSaveTab('load'); // 保存後は読込リストを表示
+}
+
+// ── 読込リスト描画 ────────────────────────────────────────────
+function renderSaveList() {
+  const saves = loadSaves();
+  const list  = $('save-list');
+  $('save-count-disp').textContent = `${saves.length} / ${SAVE_MAX} 件`;
+
+  if (saves.length === 0) {
+    list.innerHTML = `
+      <div class="save-empty">
+        <div class="se-icon">📭</div>
+        <div>保存済みデータがありません</div>
+        <div style="font-size:11px;margin-top:4px;">「保存」タブから現在の入力値を保存できます</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = saves.map(entry => `
+    <div class="save-item" onclick="doLoad(${entry.id})">
+      <div class="si-icon">📋</div>
+      <div class="si-info">
+        <div class="si-name">${escHtml(entry.name)}</div>
+        <div class="si-date">💾 ${entry.savedAt}</div>
+        <div class="si-preview">
+          売上 ${fmtNum(entry.summary.revenue)}万 ／
+          EBITDA ${fmtNum(entry.summary.ebitda)}万 ／
+          マルチプル ${fmtNum(entry.summary.multiple)}万 ／
+          純資産 ${fmtNum(entry.summary.netasset)}万 ／
+          DCF ${fmtNum(entry.summary.dcf)}万
+        </div>
+      </div>
+      <button class="si-del" onclick="event.stopPropagation(); doDelete(${entry.id})">🗑 削除</button>
+    </div>
+  `).join('');
+}
+
+// ── 読込実行 ──────────────────────────────────────────────────
+function doLoad(id) {
+  const saves = loadSaves();
+  const entry = saves.find(s => s.id === id);
+  if (!entry) return;
+  if (!confirm(`「${entry.name}」を読み込みます。\n現在の入力値は上書きされます。よろしいですか？`)) return;
+  applyValues(entry.data);
+  closeSaveModal();
+  showToast(`📂 「${entry.name}」を読み込みました`);
+}
+
+// ── 削除実行 ──────────────────────────────────────────────────
+function doDelete(id) {
+  const saves = loadSaves();
+  const entry = saves.find(s => s.id === id);
+  if (!entry) return;
+  if (!confirm(`「${entry.name}」を削除しますか？`)) return;
+  storeSaves(saves.filter(s => s.id !== id));
+  renderSaveList();
+}
+
+// ── JSONエクスポート ───────────────────────────────────────────
+function doExport() {
+  const nameInput = $('export-name-input');
+  const name = nameInput.value.trim() || 'MAバリュエーション';
+  const exportData = {
+    appVersion: '1.0',
+    exportedAt: new Date().toLocaleString('ja-JP'),
+    name,
+    data: collectCurrentValues(),
+    summary: {
+      revenue:  val('m_revenue'),
+      ebitda:   Math.round(val('m_ebit') + val('m_da') + val('m_exec_current') - val('m_exec_new')),
+      multiple: Math.round((state.multiple.ebitda + state.multiple.rev) / 2),
+      netasset: Math.round(state.netasset.value),
+      dcf:      Math.round(state.dcf.value),
+    },
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${name}_${new Date().toLocaleDateString('ja-JP').replace(/\//g,'-')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`📥 「${name}」をダウンロードしました`);
+}
+
+// ── JSONインポート ────────────────────────────────────────────
+function onImportFile(e) {
+  const file = e.target.files[0];
+  if (file) readImportFile(file);
+}
+function onImportDrop(e) {
+  e.preventDefault();
+  $('import-drop-zone').style.background = '#eff6ff';
+  const file = e.dataTransfer.files[0];
+  if (file) readImportFile(file);
+}
+function readImportFile(file) {
+  if (!file.name.toLowerCase().endsWith('.json')) {
+    alert('JSONファイルを選択してください'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const importData = JSON.parse(e.target.result);
+      if (!importData.data) throw new Error('データ形式が正しくありません');
+      const name = importData.name || file.name;
+      if (!confirm(`「${name}」をインポートします。\n現在の入力値は上書きされます。よろしいですか？`)) return;
+      applyValues(importData.data);
+      closeSaveModal();
+      showToast(`📂 「${name}」をインポートしました`);
+    } catch (err) {
+      alert(`インポートエラー: ${err.message}`);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+// ── トースト通知 ──────────────────────────────────────────────
+function showToast(msg, color = '#059669') {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    position:fixed; top:24px; left:50%; transform:translateX(-50%);
+    background:${color}; color:#fff; padding:12px 28px;
+    border-radius:10px; font-weight:700; font-size:14px;
+    z-index:9999; box-shadow:0 4px 16px rgba(0,0,0,.25);
+    animation: fadeInDown .3s ease;
+  `;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .4s'; }, 2500);
+  setTimeout(() => el.remove(), 3000);
 }
 </script>
 </body>
